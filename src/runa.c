@@ -1,25 +1,25 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "parser.h"
 #include "runa.h"
-#include "table.h"
 
 void runa_print(void *runa) {
     Runa *data = (Runa*)runa;
-    // char *arguments =
 }
 
-Runa *runa_new(char *filename) {
-    Runa *runa = (Runa*)malloc(sizeof(Runa));
-    runa->result = runa_table_new(runa_integer, 0, 0);
+void runa_loadfile(Runa *runa, char *filename) {
     runa->file = fopen(filename, "r+");
-    return runa;
+    runa_parse(runa);
 }
 
-void runa_push_result(Runa *runa, runa_table *table) {
-    free(runa->result);
-    runa->result = table;
-}
+bool runa_send_error(Runa *runa, runa_error error, char *what) {
+    runa->error = true;
+    switch(error) {
+        case RUNA_IS_NOT_A_FUNCTION: {
+            printf("%s isn't a valid function.\n", what);
+        } break;
+    }
 
-runa_table *runa_pop_result(Runa *runa) {
-    return runa->result;
+    return true;
 }
