@@ -20,6 +20,17 @@ bool isidentifier(char *buff) {
     return true;
 }
 
+bool isnumber(char *buff) {
+    int i = 0;
+
+    while(buff[i] != '\0') {
+        if(! isdigit((unsigned char)buff[i]) ) return false;
+        i++;
+    }
+
+    return true;
+}
+
 bool isstring(char *buff) {
     if( buff == NULL ) return false;
     if(! (buff[0] == '"' || buff[0] == '\'') ) return false;
@@ -53,12 +64,51 @@ bool expression(Runa *runa, char *token, runa_value *value) {
     if( isstring(token) ) {
         value->kind = runa_string;
         char *operator = runa_token(runa);
-        if( operator[0] == ',' || operator[0] == ')' ) {
-            value->value.string = (char*)malloc(strlen(token)-1);
-            memcpy(value->value.string, token + 1, strlen(token) - 2);
-            value->value.string[strlen(token) - 2] = '\0';
-            runa_back(runa, operator);
-            return true;
+        int length = strlen(token) - 2;
+
+        value->value.string = (char*)malloc(strlen(token) - 1);
+        memcpy(value->value.string, token + 1, length);
+        value->value.string[length] = '\0';
+
+        while(1) {
+            if( strcmp(operator, "..") != 0 ) {
+                runa_back(runa, operator);
+                return true;
+            }
+
+            char *rhs = runa_token(runa);
+
+            /* Just concatenate the literal string
+             * without the quotes in the string data
+             */
+            if( isstring(rhs) ) {
+                value->value.string = realloc(value->value.string, length + strlen(rhs) - 1);
+                char *no_quotes = (char*)malloc(strlen(rhs) - 1);
+                memcpy(no_quotes, rhs + 1, strlen(rhs) - 2);
+                sprintf(value->value.string, "%s%s", value->value.string, no_quotes);
+                length = strlen(value->value.string);
+                free(no_quotes);
+
+                free(operator);
+                operator = runa_token(runa);
+                continue;
+            }
+
+            /* Just concatenate the literal number
+             * in the string data
+             */
+            if( isnumber(rhs) ) {
+                value->value.string = realloc(value->value.string, length + strlen(rhs));
+                sprintf(value->value.string, "%s%s", value->value.string, rhs);
+                length = strlen(value->value.string);
+
+                free(operator);
+                operator = runa_token(runa);
+                continue;
+            }
+
+            // if( next[0] != ',' ) return runa_send_error_concatenate(runa, );
+
         }
     }
 
@@ -111,12 +161,19 @@ bool identifier(Runa *runa, char *token) {
     return false;
 }
 
+bool local(Runa *runa, char *token) {
+    if( strcmp(token, "local") == 0 ) return false;
+
+
+    return false;
+}
 
 void runa_parse(Runa *runa) {
     int x = 10;
     while(x > 0) {
         if( runa->error ) break;
         char *token = runa_token(runa);
+        if( local(runa, token) ) continue;
         if( identifier(runa, token) ) continue;
         x -= 1;
     }
