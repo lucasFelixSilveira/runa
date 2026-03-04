@@ -5,7 +5,7 @@
 #include <string.h>
 
 void runa_back(Runa *runa, char *token) {
-    for( int i = 0; i < strlen(token); i++ )
+    for( int i = strlen(token) - 1; i >= 0; i-- )
     /* -> */ungetc(token[i], runa->file);
     free(token);
 }

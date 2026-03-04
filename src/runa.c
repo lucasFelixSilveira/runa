@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "parser.h"
 #include "stack.h"
 #include "runa.h"
@@ -9,6 +10,7 @@
 void runa_loadfile(Runa *runa, char *filename) {
     runa->file = fopen(filename, "r+");
     runa->arguments = runa_stack_new(64);
+    runa->stack_locals = runa_stack_new(128);
     runa_parse(runa);
 }
 
@@ -21,12 +23,91 @@ void runa_push_function(Runa *runa, char *id, runa_callback cb, int argc) {
     };
 }
 
+void runa_push_local(Runa *runa, char *id, runa_value *value) {
+    runa->locals.values = realloc(runa->locals.values, sizeof(runa_local) * (runa->locals.length + 1));
+    runa_value *value_copy = malloc(sizeof(runa_value));
+    memcpy(value_copy, value, sizeof(runa_value));
+    char *id_copy = malloc(strlen(id) + 1);
+    strcpy(id_copy, id);
+    runa->locals.values[runa->locals.length++] = (runa_local) {
+        .identifier = id_copy,
+        .value = value_copy
+    };
+}
+
+bool runa_peek_local(Runa *runa, char *id, runa_value **value) {
+    for( int i = 0; i < runa->locals.length; i++ ) {
+        runa_local *data = &runa->locals.values[i];
+        if( data->identifier && strcmp(data->identifier, id) == 0 ) {
+            if( data->value == NULL ) return false;
+            *value = data->value;
+            return true;
+        }
+    }
+
+    *value = NULL;
+    return false;
+}
+
+void runa_destroy_local(Runa *runa, char *id) {
+    for( int i = 0; i < runa->locals.length; i++ ) {
+        runa_local *data = &runa->locals.values[i];
+        if( data->identifier && strcmp(data->identifier, id) == 0 ) {
+            free(data->identifier);
+            if( data->value != NULL ) {
+                if( data->value->kind == runa_string && data->value->value.string != NULL ) free(data->value->value.string);
+                free(data->value);
+            }
+
+            for( int j = i; j < runa->locals.length - 1; j++ )
+            /* -> */ runa->locals.values[j] = runa->locals.values[j + 1];
+
+            runa->locals.length--;
+            if( runa->locals.length > 0 ) {
+                runa->locals.values = realloc(runa->locals.values, sizeof(runa_local) * runa->locals.length);
+                break;
+            }
+
+            free(runa->locals.values);
+            runa->locals.values = NULL;
+            break;
+        }
+    }
+}
+
+void runa_assign_local(Runa *runa, char *id, runa_value *value) {
+    for( int i = 0; i < runa->locals.length; i++ ) {
+        runa_local *data = &runa->locals.values[i];
+        if( data->identifier && strcmp(data->identifier, id) == 0 ) {
+            if( data->value != NULL ) {
+                if( data->value->kind == runa_string && data->value->value.string != NULL ) {
+                    free(data->value->value.string);
+                }
+                free(data->value);
+            }
+
+            data->value = malloc(sizeof(runa_value));
+            memcpy(data->value, value, sizeof(runa_value));
+            if( value->kind == runa_string && value->value.string != NULL ) {
+                data->value->value.string = malloc(strlen(value->value.string) + 1);
+                strcpy(data->value->value.string, value->value.string);
+            }
+            return;
+        }
+    }
+
+    // Não existe, cria novo
+    runa_push_local(runa, id, value);
+}
+
 char *runa_value_kind_str(runa_value_kind kind) {
     switch(kind) {
         case runa_string: return "string";
         case runa_integer: return "integer";
+        case runa_nil: return "nil";
     }
 }
+
 
 bool runa_send_error(Runa *runa, runa_error error, char *what) {
     runa->error = true;
@@ -41,6 +122,14 @@ bool runa_send_error(Runa *runa, runa_error error, char *what) {
 
         case RUNA_INVALID_SYNTAX_IN_CALL: {
             printf("The syntax call of %s is wrong.\n", what);
+        } break;
+
+        case RUNA_INVALID_SYNTAX_IN_LOCAL: {
+            printf("The syntax local of %s is wrong.\n", what);
+        } break;
+
+        case RUNA_UNKNOWN_SYMBOL: {
+            printf("The symbol %s is unknown.\n", what);
         } break;
     }
 
