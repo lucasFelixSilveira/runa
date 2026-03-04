@@ -4,65 +4,117 @@
 #include <stdlib.h>
 #include <string.h>
 
+void runa_back(Runa *runa, char *token) {
+    for( int i = 0; i < strlen(token); i++ )
+    /* -> */ungetc(token[i], runa->file);
+    free(token);
+}
 
 char *runa_token(Runa *runa) {
     FILE *file = runa->file;
-    char buffer[2048] = { 0 };
+    char buffer[2048] = {0};
     int length = 0;
 
-    while(1) {
-        char c = getc(file);
-        if( c == EOF ) break;
+    while (1) {
+        int ci = getc(file);
+        if( ci == EOF ) break;
+        char c = (char)ci;
 
-        if( (c == '"' ||  c == '\'') && length > 0 ) {
-            ungetc(c, file);
-            char *alloc = (char*)malloc(length + 1);
-            memcpy(alloc, buffer, length + 1);
-            return alloc;
-        } else if( c == '"' ||  c == '\'' ) {
-            char x;
-            while( (x = getc(file)) != c ) buffer[length++] = x;
-        };
+        if (c == '"' || c == '\'') {
+            char quote = c;
+            buffer[length++] = quote;
 
-        if( isspace(c) && length > 0 ) {
-            char *alloc = (char*)malloc(length + 1);
-            memcpy(alloc, buffer, length + 1);
-            return alloc;
-        } else if( isspace(c) ) continue;
+            while (1) {
+                int xi = getc(file);
+                if (xi == EOF) break;
+                char x = (char)xi;
 
-        if( (! isalnum(c) ) && length > 0 ) {
-            ungetc(c, file);
-            char *alloc = (char*)malloc(length + 1);
-            memcpy(alloc, buffer, length + 1);
-            return alloc;
-        } else if(! isalnum(c) ) {
-            char x = getc(file);
-            char buff[3] = { x, 0, 0 };
-            int size = 2;
+                buffer[length++] = x;
+                if( x == quote ) break;
 
-            if(
-                   (c == '=' && x == '=')
-                || (c == '~' && x == '=')
-            ) {
-                buff[1] = x;
-                size = 3;
+                if( x == '\\' ) {
+                    int next = getc(file);
+                    if (next == EOF) break;
+                    buffer[length++] = (char)next;
+                }
             }
 
-            ungetc(x, file);
-            char *alloc = (char*)malloc(size);
-            memcpy(alloc, buff, size);
-        };
+            char *token = malloc(length + 1);
+            if(! token ) return NULL;
+            memcpy(token, buffer, length);
+            token[length] = '\0';
+            return token;
+        }
+
+        if( isspace(c) ) {
+            if( length > 0 ) {
+                char *token = malloc(length + 1);
+                if (!token) return NULL;
+                memcpy(token, buffer, length);
+                token[length] = '\0';
+                return token;
+            }
+            continue;
+        }
+
+        if(! isalnum(c) ) {
+            if( length > 0 ) {
+                ungetc(c, file);
+                char *token = malloc(length + 1);
+                if (!token) return NULL;
+                memcpy(token, buffer, length);
+                token[length] = '\0';
+                return token;
+            }
+
+            char buff[3] = {c, 0, 0};
+            int size = 1;
+
+            int next = getc(file);
+            char x = (char)next;
+
+            if( (c == '=' && x == '=') ||
+                (c == '!' && x == '=') ||
+                (c == '<' && x == '=') ||
+                (c == '>' && x == '=') ||
+                (c == '-' && x == '-') ||
+                (c == '+' && x == '+') ||
+                (c == '&' && x == '&') ||
+                (c == '|' && x == '|') ||
+                (c == '~' && x == '='))
+            {
+                buff[1] = x;
+                size = 2;
+            }
+            else ungetc(x, file);
+
+            if( c == '-' && x == '-' ) {
+                while ((next = getc(file)) != EOF && next != '\n');
+                continue;
+            }
+
+            char *token = malloc(size + 1);
+            if(! token ) return NULL;
+            memcpy(token, buff, size);
+            token[size] = '\0';
+            return token;
+        }
 
         buffer[length++] = c;
-        buffer[length] = 0;
+        buffer[length] = '\0';
+
+        if( length >= (int)sizeof(buffer) - 1 ) {
+            break;
+        }
     }
 
-    if( length > 0 ) {
-        char *alloc = (char*)malloc(length + 1);
-        memcpy(alloc, buffer, length + 1);
-        return alloc;
+    if (length > 0) {
+        char *token = malloc(length + 1);
+        if (!token) return NULL;
+        memcpy(token, buffer, length);
+        token[length] = '\0';
+        return token;
     }
 
-    char *alloc = (char*)malloc(1);
-    return alloc;
+    return strdup("");
 }

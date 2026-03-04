@@ -3,6 +3,7 @@
 
 #include "runa.h"
 
+void runa_back(Runa *runa, char *token);
 char *runa_token(Runa *runa);
 
 #endif

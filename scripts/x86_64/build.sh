@@ -13,7 +13,7 @@ for filename in *.c; do
     if [ -f "$filename" ]; then
         obj="../bin/${filename%.c}.o"
         echo "Compiling $filename"
-        gcc -m64 -c "$filename" -I../include -o "$obj"
+        gcc -m64 -ggdb -c "$filename" -I../include -o "$obj"
         objs+=("$obj")
     fi
 done
