@@ -112,25 +112,20 @@ char *runa_value_kind_str(runa_value_kind kind) {
 bool runa_send_error(Runa *runa, runa_error error, char *what) {
     runa->error = true;
     switch(error) {
-        case RUNA_IS_NOT_A_FUNCTION: {
-            printf("%s isn't a valid function.\n", what);
-        } break;
+        case RUNA_IS_NOT_A_FUNCTION: printf("%s isn't a valid function.\n", what);
+        break;
 
-        case RUNA_ARGUMENTS_COUNT_WRONG: {
-            printf("the function %s arguments count is wrong.\n", what);
-        } break;
+        case RUNA_ARGUMENTS_COUNT_WRONG: printf("the function %s arguments count is wrong.\n", what);
+        break;
 
-        case RUNA_INVALID_SYNTAX_IN_CALL: {
-            printf("The syntax call of %s is wrong.\n", what);
-        } break;
+        case RUNA_INVALID_SYNTAX_IN_CALL: printf("The syntax call of %s is wrong.\n", what);
+        break;
 
-        case RUNA_INVALID_SYNTAX_IN_LOCAL: {
-            printf("The syntax local of %s is wrong.\n", what);
-        } break;
+        case RUNA_INVALID_SYNTAX_IN_LOCAL: printf("The syntax local of %s is wrong.\n", what);
+        break;
 
-        case RUNA_UNKNOWN_SYMBOL: {
-            printf("The symbol %s is unknown.\n", what);
-        } break;
+        case RUNA_UNKNOWN_SYMBOL: printf("The symbol %s is unknown.\n", what);
+        break;
     }
 
     return true;

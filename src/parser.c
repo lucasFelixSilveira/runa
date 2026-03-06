@@ -2,6 +2,7 @@
 #include "lexer.h"
 #include "stack.h"
 #include <ctype.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,6 +69,47 @@ bool expression(Runa *runa, char *token, runa_value *value) {
         }
     }
 
+    if( isnumber(token) ) {
+        char *operator = runa_token(runa);
+        bool isadd = strcmp(operator, "+") == 0;
+        bool issub = strcmp(operator, "-") == 0;
+        bool ismul = strcmp(operator, "*") == 0;
+        bool isidiv = strcmp(operator, "//") == 0;
+
+        if(! (isadd || issub || ismul || isidiv) ) {
+            runa_back(runa, operator);
+            *value = (runa_value) {
+                .kind = runa_integer,
+                .value.integer = atoi(token)
+            };
+            return true;
+        }
+
+        int x = atoi(token);
+
+        while(1) {
+            if( isadd ) x += atoi(runa_token(runa));
+            if( issub ) x -= atoi(runa_token(runa));
+            if( ismul ) x *= atoi(runa_token(runa));
+            if( isidiv ) x = (int)(x / atoi(runa_token(runa)));
+
+            char *operator = runa_token(runa);
+            isadd = strcmp(operator, "+") == 0;
+            issub = strcmp(operator, "-") == 0;
+            ismul = strcmp(operator, "*") == 0;
+            isidiv = strcmp(operator, "//") == 0;
+
+            if(! (isadd || issub || ismul || isidiv) ) {
+                runa_back(runa, operator);
+                *value = (runa_value) {
+                    .kind = runa_integer,
+                    .value.integer = x
+                };
+                return true;
+            }
+        }
+    }
+
     if( isstring(token) ) {
         value->kind = runa_string;
         char *operator = runa_token(runa);
@@ -83,38 +125,34 @@ bool expression(Runa *runa, char *token, runa_value *value) {
                 return true;
             }
 
-            char *rhs = runa_token(runa);
+            char *data = runa_token(runa);
+            runa_value rhs = { .kind = runa_nil, .value.nil = NULL };
+            if(! expression(runa, data, &rhs) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
 
-            /* Just concatenate the literal string
-             * without the quotes in the string data
-             */
-            if( isstring(rhs) ) {
-                value->value.string = realloc(value->value.string, length + strlen(rhs) - 1);
-                char *no_quotes = (char*)malloc(strlen(rhs) - 1);
-                memcpy(no_quotes, rhs + 1, strlen(rhs) - 2);
+            if( rhs.kind == runa_string ) {
+                value->value.string = realloc(value->value.string, length + strlen(rhs.value.string) - 1);
+                char *no_quotes = (char*)malloc(strlen(rhs.value.string) - 1);
+                memcpy(no_quotes, rhs.value.string + 1, strlen(rhs.value.string) - 2);
                 sprintf(value->value.string, "%s%s", value->value.string, no_quotes);
                 length = strlen(value->value.string);
                 free(no_quotes);
+                free(rhs.value.string);
 
                 free(operator);
                 operator = runa_token(runa);
                 continue;
             }
 
-            /* Just concatenate the literal number
-             * in the string data
-             */
-            if( isnumber(rhs) ) {
-                value->value.string = realloc(value->value.string, length + strlen(rhs));
-                sprintf(value->value.string, "%s%s", value->value.string, rhs);
+            if( rhs.kind == runa_integer ) {
+                int digits = (rhs.value.integer == 0) ? 1 : (int)log10(rhs.value.integer < 0 ? -(double)rhs.value.integer : rhs.value.integer) + 1;
+                value->value.string = realloc(value->value.string, length + digits);
+                sprintf(value->value.string, "%s%d", value->value.string, rhs.value.integer);
                 length = strlen(value->value.string);
 
                 free(operator);
                 operator = runa_token(runa);
                 continue;
             }
-
-            // if( next[0] != ',' ) return runa_send_error_concatenate(runa, );
 
         }
     }
