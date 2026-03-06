@@ -10,6 +10,7 @@ typedef void (*runa_callback)(void *runa);
 typedef enum runa_value_kind {
     runa_string,
     runa_integer,
+    runa_float,
     runa_nil
 } runa_value_kind;
 
@@ -18,6 +19,7 @@ typedef struct runa_value {
     union {
         char *string;
         int integer;
+        double _float;
         void *nil;
     } value;
 } runa_value;

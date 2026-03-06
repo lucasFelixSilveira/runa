@@ -1,4 +1,5 @@
 #include "runa.h"
+#include "checkout.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,18 +16,18 @@ char *runa_token(Runa *runa) {
     char buffer[2048] = {0};
     int length = 0;
 
-    while (1) {
+    while(1) {
         int ci = getc(file);
         if( ci == EOF ) break;
         char c = (char)ci;
 
-        if (c == '"' || c == '\'') {
+        if( c == '"' || c == '\'' ) {
             char quote = c;
             buffer[length++] = quote;
 
-            while (1) {
+            while(1) {
                 int xi = getc(file);
-                if (xi == EOF) break;
+                if( xi == EOF ) break;
                 char x = (char)xi;
 
                 buffer[length++] = x;
@@ -34,7 +35,7 @@ char *runa_token(Runa *runa) {
 
                 if( x == '\\' ) {
                     int next = getc(file);
-                    if (next == EOF) break;
+                    if ( next == EOF ) break;
                     buffer[length++] = (char)next;
                 }
             }
@@ -58,10 +59,16 @@ char *runa_token(Runa *runa) {
         }
 
         if(! isalnum(c) ) {
+            if( length > 0 && isinteger(buffer) && c == '.' ) {
+                buffer[length++] = c;
+                buffer[length] = '\0';
+                continue;
+            }
+
             if( length > 0 ) {
                 ungetc(c, file);
                 char *token = malloc(length + 1);
-                if (!token) return NULL;
+                if(! token ) return NULL;
                 memcpy(token, buffer, length);
                 token[length] = '\0';
                 return token;
@@ -109,7 +116,7 @@ char *runa_token(Runa *runa) {
         }
     }
 
-    if (length > 0) {
+    if( length > 0 ) {
         char *token = malloc(length + 1);
         if (!token) return NULL;
         memcpy(token, buffer, length);

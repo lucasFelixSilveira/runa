@@ -103,6 +103,7 @@ char *runa_value_kind_str(runa_value_kind kind) {
     switch(kind) {
         case runa_string: return "string";
         case runa_integer: return "integer";
+        case runa_float: return "float";
         case runa_nil: return "nil";
     }
 }

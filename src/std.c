@@ -7,16 +7,22 @@ void runa_print(Runa *runa) {
 
 
     if( argument_one.kind == runa_string ) {
-        char *str = argument_one.value.string;
-        printf("%s\n", str);
+        char *value = argument_one.value.string;
+        printf("%s\n", value);
         return;
     }
 
     if( argument_one.kind == runa_integer ) {
-        int i32 = argument_one.value.integer;
-        printf("%d\n", i32);
+        int value = argument_one.value.integer;
+        printf("%d\n", value);
         return;
     }
 
-    runa_send_error_type(runa, "print", "(string|integer)", runa_value_kind_str(argument_one.kind));
+    if( argument_one.kind == runa_float ) {
+        double value = argument_one.value._float;
+        printf("%.15g\n", value);
+        return;
+    }
+
+    runa_send_error_type(runa, "print", "(string|float|integer)", runa_value_kind_str(argument_one.kind));
 }

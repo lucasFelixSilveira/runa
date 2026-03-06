@@ -1,44 +1,16 @@
 #include "runa.h"
 #include "lexer.h"
 #include "stack.h"
-#include <ctype.h>
+#include "checkout.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-bool isidentifier(char *buff) {
-    if( buff == NULL ) return false;
-    if(! isalpha((unsigned char)buff[0]) ) return false;
-
-    int i = 1;
-    while(buff[i] != '\0') {
-        if(! isalnum((unsigned char)buff[i]) ) return false;
-        i++;
-    }
-
-    return true;
-}
-
-bool isnumber(char *buff) {
-    int i = 0;
-
-    while(buff[i] != '\0') {
-        if(! isdigit((unsigned char)buff[i]) ) return false;
-        i++;
-    }
-
-    return true;
-}
-
-bool isstring(char *buff) {
-    if( buff == NULL ) return false;
-    if(! (buff[0] == '"' || buff[0] == '\'') ) return false;
-    int last = strlen(buff) - 1;
-    if(! (buff[last] == '"' || buff[last] == '\'') ) return false;
-    return true;
-}
+#define checktoop(identifier, literal) \
+    bool is##identifier = strcmp(operator, literal) == 0; \
+    isoperation = isoperation && is##identifier
 
 bool check_if_is_function(Runa *runa, runa_function *function, char *identifier) {
     for( int i = 0; i < runa->functions_length; i++ ) {
@@ -53,44 +25,45 @@ bool check_if_is_function(Runa *runa, runa_function *function, char *identifier)
 
 bool expression(Runa *runa, char *token, runa_value *value);
 
-bool integer_expression(Runa *runa, char *token, runa_value *value) {
-    char *operator = runa_token(runa);
-    bool isadd = strcmp(operator, "+") == 0;
-    bool issub = strcmp(operator, "-") == 0;
-    bool ismul = strcmp(operator, "*") == 0;
-    bool isidiv = strcmp(operator, "//") == 0;
+bool numeric_expression(Runa *runa, char *token, runa_value *value) {
+    long double current = atof(token);
 
-    if(! (isadd || issub || ismul || isidiv) ) {
+    char *operator = runa_token(runa);
+    bool isoperation = false;
+
+    checktoop(add, "+");
+    checktoop(sub, "-");
+    checktoop(div, "/");
+    checktoop(mul, "*");
+    checktoop(mod, "%");
+
+    checktoop(idiv, "//");
+
+    if(! isoperation ) {
         runa_back(runa, operator);
-        *value = (runa_value) {
+        if( isinteger(token) ) *value = (runa_value) {
             .kind = runa_integer,
             .value.integer = atoi(token)
+        };
+        else *value = (runa_value) {
+            .kind = runa_float,
+            .value._float = atof(token)
         };
         return true;
     }
 
-    int x = atoi(token);
+    char **instructions = (char**)malloc(0);
 
     while(1) {
-        if( isadd ) x += atoi(runa_token(runa));
-        if( issub ) x -= atoi(runa_token(runa));
-        if( ismul ) x *= atoi(runa_token(runa));
-        if( isidiv ) x = (int)(x / atoi(runa_token(runa)));
+        // instructions.
 
-        char *operator = runa_token(runa);
-        isadd = strcmp(operator, "+") == 0;
-        issub = strcmp(operator, "-") == 0;
-        ismul = strcmp(operator, "*") == 0;
-        isidiv = strcmp(operator, "//") == 0;
+    //     if( isadd ) current += atof(runa_token(runa));
+    //     if( issub ) current -= atof(runa_token(runa));
+    //     if( ismul ) current *= atof(runa_token(runa));
+    //     if( isidiv ) current /= atoi(runa_token(runa));
+    //     if( isidiv ) x = (int)(x / atoi(runa_token(runa)));
 
-        if(! (isadd || issub || ismul || isidiv) ) {
-            runa_back(runa, operator);
-            *value = (runa_value) {
-                .kind = runa_integer,
-                .value.integer = x
-            };
-            return true;
-        }
+
     }
 }
 
@@ -158,7 +131,7 @@ bool expression(Runa *runa, char *token, runa_value *value) {
         if( isconcat && peeked_value == runa_string ) string_expression(runa, token, value);
     }
 
-    if( isnumber(token) ) return integer_expression(runa, token, value);
+    if( isnumber(token) ) return numeric_expression(runa, token, value);
     if( isstring(token) ) return string_expression(runa, token, value);
 
     return false;

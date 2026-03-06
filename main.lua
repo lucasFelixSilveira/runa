@@ -1,1 +1,1 @@
-print("Hello, world!" .. " test")
+print(3.141592)
