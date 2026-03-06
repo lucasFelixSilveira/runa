@@ -26,34 +26,30 @@ bool check_if_is_function(Runa *runa, runa_function *function, char *identifier)
 
 bool expression(Runa *runa, char *token, runa_value *value);
 
-bool is_operator(const char *s) {
-    return !strcmp(s,"+") ||
-           !strcmp(s,"-") ||
-           !strcmp(s,"*") ||
-           !strcmp(s,"/") ||
-           !strcmp(s,"%") ||
-           !strcmp(s,"//");
+bool is_operator(char *s) {
+    return !strcmp(s, "+") ||
+           !strcmp(s, "-") ||
+           !strcmp(s, "*") ||
+           !strcmp(s, "/") ||
+           !strcmp(s, "%") ||
+           !strcmp(s, "//");
 }
 
-int operator_precedence(const char *op) {
-    if(!strcmp(op,"+") || !strcmp(op,"-")) return 1;
-    if(!strcmp(op,"*") || !strcmp(op,"/") || !strcmp(op,"%") || !strcmp(op,"//")) return 2;
+int operator_precedence(char *op) {
+    if(! strcmp(op, "+") || !strcmp(op, "-") ) return 1;
+    if(! strcmp(op, "*") || !strcmp(op, "/") || !strcmp(op, "%") || !strcmp(op, "//") ) return 2;
     return 0;
 }
 
 bool resolve_numeric_token(Runa *runa, char *token, char **out) {
-
-    if(isnumber(token)) {
+    if( isnumber(token) ) {
         *out = strdup(token);
         return true;
     }
 
-    if(isidentifier(token)) {
-
+    if( isidentifier(token) ) {
         runa_value *v = NULL;
-
-        if(!runa_peek_local(runa, token, &v))
-            return false;
+        if(! runa_peek_local(runa, token, &v) ) return false;
 
         *out = runa_value_to_string(v);
         return true;
@@ -63,7 +59,6 @@ bool resolve_numeric_token(Runa *runa, char *token, char **out) {
 }
 
 bool numeric_expression(Runa *runa, char *token, runa_value *value) {
-
     char *operator = runa_token(runa);
     bool isoperation = false;
 
@@ -76,16 +71,15 @@ bool numeric_expression(Runa *runa, char *token, runa_value *value) {
 
     char *first;
 
-    if(!resolve_numeric_token(runa, token, &first))
-        return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
+    if(! resolve_numeric_token(runa, token, &first) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
 
-    if(!isoperation) {
+    if(! isoperation ) {
 
         runa_back(runa, operator);
 
         long double result = strtold(first, NULL);
 
-        if((long long)result == result) {
+        if( (long long)result == result ) {
             value->kind = runa_integer;
             value->value.integer = (long long)result;
         } else {
@@ -106,15 +100,12 @@ bool numeric_expression(Runa *runa, char *token, runa_value *value) {
     tokens[len++] = operator;
 
     while(1) {
-
         char *data = runa_token(runa);
-
         char *num;
 
-        if(!resolve_numeric_token(runa, data, &num))
-            return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, data);
+        if(! resolve_numeric_token(runa, data, &num) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, data);
 
-        if(len >= cap) {
+        if( len >= cap ) {
             cap *= 2;
             tokens = realloc(tokens, sizeof(char*) * cap);
         }
@@ -131,12 +122,12 @@ bool numeric_expression(Runa *runa, char *token, runa_value *value) {
         checktoop(mod, "%");
         checktoop(idiv, "//");
 
-        if(!isoperation) {
+        if(! isoperation ) {
             runa_back(runa, operator);
             break;
         }
 
-        if(len >= cap) {
+        if( len >= cap ) {
             cap *= 2;
             tokens = realloc(tokens, sizeof(char*) * cap);
         }
@@ -144,45 +135,31 @@ bool numeric_expression(Runa *runa, char *token, runa_value *value) {
         tokens[len++] = operator;
     }
 
-    /* SHUNTING YARD */
-
     char **output = malloc(sizeof(char*) * len);
     char **stack  = malloc(sizeof(char*) * len);
 
     int oi = 0;
     int si = 0;
 
-    for(int i = 0; i < len; i++) {
-
+    for( int i = 0; i < len; i++ ) {
         char *t = tokens[i];
-
-        if(!is_operator(t)) {
-            output[oi++] = t;
-        } else {
-
-            while(si > 0 &&
-                  operator_precedence(stack[si-1]) >= operator_precedence(t)) {
-
-                output[oi++] = stack[--si];
-            }
-
+        if(! is_operator(t) ) output[oi++] = t;
+        else {
+            while(si > 0 && operator_precedence(stack[si-1]) >= operator_precedence(t)) output[oi++] = stack[--si];
             stack[si++] = t;
         }
     }
 
-    while(si > 0)
-        output[oi++] = stack[--si];
-
-    /* EVALUATE */
+    while(si > 0) output[oi++] = stack[--si];
 
     long double *numstack = malloc(sizeof(long double) * oi);
     int ni = 0;
 
-    for(int i = 0; i < oi; i++) {
+    for( int i = 0; i < oi; i++ ) {
 
         char *t = output[i];
 
-        if(!is_operator(t)) {
+        if(! is_operator(t) ) {
             numstack[ni++] = strtold(t, NULL);
             continue;
         }
@@ -190,17 +167,17 @@ bool numeric_expression(Runa *runa, char *token, runa_value *value) {
         long double b = numstack[--ni];
         long double a = numstack[--ni];
 
-        if(!strcmp(t,"+")) numstack[ni++] = a + b;
-        else if(!strcmp(t,"-")) numstack[ni++] = a - b;
-        else if(!strcmp(t,"*")) numstack[ni++] = a * b;
-        else if(!strcmp(t,"/")) numstack[ni++] = a / b;
-        else if(!strcmp(t,"%")) numstack[ni++] = (long long)a % (long long)b;
-        else if(!strcmp(t,"//")) numstack[ni++] = (long long)(a / b);
+        if(! strcmp(t,"+") ) numstack[ni++] = a + b;
+        else if(! strcmp(t,"-") ) numstack[ni++] = a - b;
+        else if(! strcmp(t,"*") ) numstack[ni++] = a * b;
+        else if(! strcmp(t,"/") ) numstack[ni++] = a / b;
+        else if(! strcmp(t,"%") ) numstack[ni++] = (long long)a % (long long)b;
+        else if(! strcmp(t,"//") ) numstack[ni++] = (long long)(a / b);
     }
 
     long double result = numstack[0];
 
-    if((long long)result == result) {
+    if( (long long)result == result ) {
         value->kind = runa_integer;
         value->value.integer = (long long)result;
     } else {
