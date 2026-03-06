@@ -96,7 +96,6 @@ void runa_assign_local(Runa *runa, char *id, runa_value *value) {
         }
     }
 
-    // Não existe, cria novo
     runa_push_local(runa, id, value);
 }
 
