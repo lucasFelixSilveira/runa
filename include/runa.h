@@ -19,7 +19,7 @@ typedef struct runa_value {
     union {
         char *string;
         int integer;
-        double _float;
+        long double _float;
         void *nil;
     } value;
 } runa_value;
@@ -68,10 +68,12 @@ typedef enum runa_error {
     RUNA_INVALID_SYNTAX_IN_CALL,
     RUNA_INVALID_SYNTAX_IN_LOCAL,
     RUNA_UNKNOWN_SYMBOL,
+    RUNA_INVALID_SYNTAX_OF_EXPRESSION,
 } runa_error;
 
 bool runa_send_error(Runa *runa, runa_error error, char *what);
 bool runa_send_error_type(Runa *runa, char *where, char *expected, char *received);
+char *runa_value_to_string(runa_value *value);
 char *runa_value_kind_str(runa_value_kind kind);
 
 #endif

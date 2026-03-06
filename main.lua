@@ -1,1 +1,2 @@
-print(3.141592)
+local x = 2 + 3 * 2;
+print(x + 12)

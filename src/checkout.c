@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <string.h>
+
 bool isidentifier(char *buff) {
     if( buff == NULL ) return false;
     if(! isalpha((unsigned char)buff[0]) ) return false;
@@ -46,9 +47,6 @@ bool isfloat(char *buff) {
 
     return dot;
 }
-
-#define isnumber(value) \
-    ( isinteger(value) || isfloat(value) )
 
 bool isstring(char *buff) {
     if( buff == NULL ) return false;

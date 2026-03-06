@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +28,7 @@ void runa_push_local(Runa *runa, char *id, runa_value *value) {
     runa->locals.values = realloc(runa->locals.values, sizeof(runa_local) * (runa->locals.length + 1));
     runa_value *value_copy = malloc(sizeof(runa_value));
     memcpy(value_copy, value, sizeof(runa_value));
-    char *id_copy = malloc(strlen(id) + 1);
+    char *id_copy = (char*)malloc(strlen(id) + 1);
     strcpy(id_copy, id);
     runa->locals.values[runa->locals.length++] = (runa_local) {
         .identifier = id_copy,
@@ -99,6 +100,28 @@ void runa_assign_local(Runa *runa, char *id, runa_value *value) {
     runa_push_local(runa, id, value);
 }
 
+char *runa_value_to_string(runa_value *value) {
+    if( value->kind == runa_string ) return strdup(value->value.string);
+
+    if( value->kind == runa_integer ) {
+        int digits = (value->value.integer == 0) ? 1 : (int)log10(value->value.integer < 0 ? -(double)value->value.integer : value->value.integer) + 1;
+        char *data = (char*)malloc(digits);
+        sprintf(data, "%d", value->value.integer);
+        return data;
+    }
+
+    if(value->kind == runa_float) {
+        int digits = snprintf(NULL, 0, "%Lg", value->value._float);
+        char *data = malloc(digits + 1);
+        snprintf(data, digits + 1, "%Lg", value->value._float);
+        return data;
+    }
+
+    char *nil = (char*)malloc(4);
+    memcpy(nil, "nil", 4);
+    return nil;
+}
+
 char *runa_value_kind_str(runa_value_kind kind) {
     switch(kind) {
         case runa_string: return "string";
@@ -107,7 +130,6 @@ char *runa_value_kind_str(runa_value_kind kind) {
         case runa_nil: return "nil";
     }
 }
-
 
 bool runa_send_error(Runa *runa, runa_error error, char *what) {
     runa->error = true;
@@ -125,6 +147,9 @@ bool runa_send_error(Runa *runa, runa_error error, char *what) {
         break;
 
         case RUNA_UNKNOWN_SYMBOL: printf("The symbol %s is unknown.\n", what);
+        break;
+
+        case RUNA_INVALID_SYNTAX_OF_EXPRESSION: printf("Invalid syntax of expression. %s was the reason.\n", what);
         break;
     }
 
