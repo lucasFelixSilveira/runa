@@ -49,6 +49,7 @@ typedef struct runa_locals {
 
 typedef struct Runa {
     FILE *file;
+    char *pushed;
     bool error;
     runa_stack *arguments;
     int functions_length;

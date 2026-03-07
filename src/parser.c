@@ -74,7 +74,6 @@ bool expression(Runa *runa, char *token, runa_value *value) {
 
         if( (! already_peeked) && (! runa_peek_local(runa, token, &peeked_value)) ) return runa_send_error(runa, RUNA_UNKNOWN_SYMBOL, token);
 
-
         if( already_peeked && isoperation ) {
             if( peeked_value->kind == runa_string && (! isconcat) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, operator);
 
@@ -164,23 +163,25 @@ bool local(Runa *runa, char *token) {
     if( strcmp(token, "local") != 0 ) return false;
 
     int i = 0, v = 0;
-    char **identifiers = (char**)malloc(0);
-    runa_value **values = (runa_value**)malloc(0);
+    char **identifiers = NULL;
+    runa_value **values = NULL;
 
-    /* Iterate for identifiers */
+    /* Iterate identifiers */
     while(1) {
         char *identifier = runa_token(runa);
         if(! isidentifier(identifier) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_LOCAL, identifier);
+
         identifiers = realloc(identifiers, sizeof(char*) * (i + 1));
         identifiers[i++] = identifier;
 
         char *operator = runa_token(runa);
+
         if(! (operator[0] == ',' || strcmp(operator, "=") == 0) ) {
-            /* Allocate all identifiers as nil */
             runa_back(runa, operator);
 
+            /* assign nil to identifiers */
             for( int j = 0; j < i; j++ ) {
-                runa_value value = (runa_value) { .kind = runa_nil, .value.nil = NULL };
+                runa_value value = { .kind = runa_nil, .value.nil = NULL };
                 runa_push_local(runa, identifiers[j], &value);
             }
 
@@ -190,18 +191,20 @@ bool local(Runa *runa, char *token) {
         if( strcmp(operator, "=") == 0 ) break;
     }
 
-    /* Iterate for values */
+    /* Iterate values */
     int j = 0;
     while(1) {
         char *data = runa_token(runa);
-        runa_value *value = malloc(sizeof(runa_value));
-        value[0] = (runa_value) { .kind = runa_nil, .value.nil = NULL };
-        if(! expression(runa, data, value) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
+        runa_value value = { .kind = runa_nil, .value.nil = NULL };
+
+        if(! expression(runa, data, &value) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
+
         values = realloc(values, sizeof(runa_value*) * (v + 1));
         values[v] = malloc(sizeof(runa_value));
-        memcpy(values[v], value, sizeof(runa_value));
+        memcpy(values[v], &value, sizeof(runa_value));
         v++;
-        runa_assign_local(runa, identifiers[j++], value);
+
+        runa_assign_local(runa, identifiers[j++], &value);
 
         char *operator = runa_token(runa);
         if( operator[0] != ',' ) {
@@ -214,6 +217,7 @@ bool local(Runa *runa, char *token) {
 }
 
 void runa_parse(Runa *runa) {
+    runa->pushed = NULL;
     int x = 10;
     while(x > 0) {
         if( runa->error ) break;

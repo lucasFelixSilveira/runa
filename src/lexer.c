@@ -6,12 +6,16 @@
 #include <string.h>
 
 void runa_back(Runa *runa, char *token) {
-    for( int i = strlen(token) - 1; i >= 0; i-- )
-    /* -> */ungetc(token[i], runa->file);
-    free(token);
+    runa->pushed = token;
 }
 
 char *runa_token(Runa *runa) {
+    if (runa->pushed) {
+        char *t = runa->pushed;
+        runa->pushed = NULL;
+        return t;
+    }
+
     FILE *file = runa->file;
     char buffer[2048] = {0};
     int length = 0;

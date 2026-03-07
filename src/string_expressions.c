@@ -1,6 +1,7 @@
 #include "runa.h"
 #include "lexer.h"
 #include "parser.h"
+#include "checkout.h"
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
@@ -10,9 +11,19 @@ bool string_expression(Runa *runa, char *token, runa_value *value) {
     char *operator = runa_token(runa);
     int length = strlen(token) - 2;
 
-    value->value.string = (char*)malloc(strlen(token) - 1);
-    memcpy(value->value.string, token + 1, length);
-    value->value.string[length] = '\0';
+    if( isstring(token) ) {
+        value->value.string = (char*)malloc(strlen(token) - 1);
+        memcpy(value->value.string, token + 1, length);
+        value->value.string[length] = '\0';
+    } else {
+        runa_value *peeked_value = NULL;
+        runa_peek_local(runa, token, &peeked_value);
+        length = strlen(peeked_value->value.string);
+
+        value->value.string = (char*)malloc(strlen(peeked_value->value.string) + 1);
+        memcpy(value->value.string, peeked_value->value.string, length);
+        value->value.string[length] = '\0';
+    }
 
     while(1) {
         if( strcmp(operator, "..") != 0 ) {
