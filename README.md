@@ -20,5 +20,7 @@ RUNA isn't a luxury. It's the bare minimum we deserve to avoid being held hostag
 Runa uses the same syntax of PUC-LUA, but you need use perenthesis in function calls, and common native libraries of lua don't works here. Runa has her own std package, with less functions than PUC-LUA. 
 
 ```lua
-print("Hello world running from RUNA!")
+local dev = { name = "Lucas", age = 16, bio = "I am just a developer" }
+print("Hello world! My name is " .. dev["name"] .. ", i am " .. dev["age"] .. ' and ' .. dev["bio"])
+-- Hello world! My name is Lucas, i am 16 and I am just a developer
 ```
