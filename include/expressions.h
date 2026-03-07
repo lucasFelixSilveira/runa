@@ -6,4 +6,5 @@
 
 bool string_expression(Runa *runa, char *token, runa_value *value);
 bool numeric_expression(Runa *runa, char *token, runa_value *value);
+bool table_expression(Runa *runa, char *token, runa_value *value);
 #endif

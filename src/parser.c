@@ -22,6 +22,35 @@ bool check_if_is_function(Runa *runa, runa_function *function, char *identifier)
 bool expression(Runa *runa, char *token, runa_value *value) {
     if( isidentifier(token) ) {
         char *operator = runa_token(runa);
+
+        if( operator[0] == '[' ) {
+
+            runa_value *table = (runa_value*)malloc(sizeof(runa_value));
+            table[0] =  (runa_value) { .kind = runa_nil, .value.nil = NULL };
+            runa_peek_local(runa, token, &table);
+
+            if( table->kind != runa_table ) {
+                free(operator);
+                free(table);
+                return runa_send_error(runa, RUNA_ACCESS_INVALID_BECAUSE_IDENTIFIER, token);
+            }
+
+            char *access = runa_token(runa);
+            runa_value index = { .kind = runa_nil, .value.nil = NULL };
+            if(! expression(runa, access, &index) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, access);
+
+            char *str = runa_value_to_string(&index);
+            runa_value *data = runa_access_table(table, str);
+
+            if( data->kind == runa_nil ) return runa_send_fatal_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, str);
+
+            *value = *data;
+            char *end = runa_token(runa);
+            if( end[0] != ']' ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, end);
+
+            return true;
+        }
+
         bool isoperation = false;
 
         checktoop(concat, "..");
@@ -48,6 +77,8 @@ bool expression(Runa *runa, char *token, runa_value *value) {
 
     if( isnumber(token) ) return numeric_expression(runa, token, value);
     if( isstring(token) ) return string_expression(runa, token, value);
+
+    if( strcmp(token, "{") == 0 ) return table_expression(runa, token, value);
 
     return false;
 }

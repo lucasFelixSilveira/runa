@@ -7,10 +7,16 @@
 
 typedef void (*runa_callback)(void *runa);
 
+typedef struct runa_table_field {
+    char *identifier;
+    void *value;
+} runa_table_field;
+
 typedef enum runa_value_kind {
     runa_string,
     runa_integer,
     runa_float,
+    runa_table,
     runa_nil
 } runa_value_kind;
 
@@ -21,6 +27,7 @@ typedef struct runa_value {
         int integer;
         long double _float;
         void *nil;
+        void *table;
     } value;
 } runa_value;
 
@@ -69,11 +76,16 @@ typedef enum runa_error {
     RUNA_INVALID_SYNTAX_IN_LOCAL,
     RUNA_UNKNOWN_SYMBOL,
     RUNA_INVALID_SYNTAX_OF_EXPRESSION,
+    RUNA_ACCESS_INVALID_BECAUSE_IDENTIFIER,
 } runa_error;
 
 bool runa_send_error(Runa *runa, runa_error error, char *what);
+bool runa_send_fatal_error(Runa *runa, runa_error error, char *what);
 bool runa_send_error_type(Runa *runa, char *where, char *expected, char *received);
+
 char *runa_value_to_string(runa_value *value);
 char *runa_value_kind_str(runa_value_kind kind);
+
+runa_value *runa_access_table(runa_value *table, char *str);
 
 #endif

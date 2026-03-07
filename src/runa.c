@@ -7,6 +7,7 @@
 #include "stack.h"
 #include "runa.h"
 #include "std.h"
+#include "vector.h"
 
 void runa_loadfile(Runa *runa, char *filename) {
     runa->file = fopen(filename, "r+");
@@ -128,7 +129,18 @@ char *runa_value_kind_str(runa_value_kind kind) {
         case runa_integer: return "integer";
         case runa_float: return "float";
         case runa_nil: return "nil";
+        case runa_table: return "table";
     }
+}
+
+runa_value *runa_access_table(runa_value *table, char *str) {
+    runa_value *data = &(runa_value) { .kind = runa_nil, .value.nil = NULL };
+    runa_vector *vec = (runa_vector*)table->value.table;
+    for( int i = 0; i < vec->length; i++ ) {
+        runa_table_field *field = runa_vector_get(vec, i);
+        if( strcmp(field->identifier, str) == 0 ) data = (runa_value*)field->value;
+    }
+    return data;
 }
 
 bool runa_send_error(Runa *runa, runa_error error, char *what) {
@@ -151,8 +163,17 @@ bool runa_send_error(Runa *runa, runa_error error, char *what) {
 
         case RUNA_INVALID_SYNTAX_OF_EXPRESSION: printf("Invalid syntax of expression. %s was the reason.\n", what);
         break;
+
+        case RUNA_ACCESS_INVALID_BECAUSE_IDENTIFIER: printf("You can't use access opration in %s. Because it isn't a table.\n", what);
+        break;
     }
 
+    return true;
+}
+
+bool runa_send_fatal_error(Runa *runa, runa_error error, char *what) {
+    runa_send_error(runa, error, what);
+    exit(-1);
     return true;
 }
 
