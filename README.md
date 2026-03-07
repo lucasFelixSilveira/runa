@@ -5,7 +5,7 @@
 
 RUNA is an extremely compact library that interprets Lua 5.x (with an optimized subset) and serves as a hardcore glue between your C, C++, or Rust code and Lua scripts.
 
-Built exclusively with the Morgana ecosystem in mind: extensors, yet can be used in any system capable of importing C headers.
+Built exclusively with the [Morgana](https://github.com/lucasFelixSilveira/morgana) ecosystem in mind: extensors, yet can be used in any system capable of importing C headers.
 
 # Why use Runa instead of PUC-LUA?
 
