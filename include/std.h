@@ -4,8 +4,9 @@
 #include "runa.h"
 
 #define ___runa_use_std__(runa) \
-    ( runa_push_function(runa, "print", (runa_callback)runa_print, 1) )
+    ( runa_push_function(runa, "print", (runa_callback)runa_print, 1), runa_push_function(runa, "public", (runa_callback)runa_public, 2) )
 
 void runa_print(Runa *runa);
+void runa_public(Runa *runa);
 
 #endif

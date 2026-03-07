@@ -5,6 +5,7 @@
 #include "checkout.h"
 #include "expressions.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -20,11 +21,13 @@ bool check_if_is_function(Runa *runa, runa_function *function, char *identifier)
 }
 
 bool expression(Runa *runa, char *token, runa_value *value) {
+    bool already_peeked = false;
+    runa_value *peeked_value = NULL;
+
     if( isidentifier(token) ) {
         char *operator = runa_token(runa);
 
         if( operator[0] == '[' ) {
-
             runa_value *table = (runa_value*)malloc(sizeof(runa_value));
             table[0] =  (runa_value) { .kind = runa_nil, .value.nil = NULL };
             runa_peek_local(runa, token, &table);
@@ -44,11 +47,19 @@ bool expression(Runa *runa, char *token, runa_value *value) {
 
             if( data->kind == runa_nil ) return runa_send_fatal_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, str);
 
-            *value = *data;
             char *end = runa_token(runa);
             if( end[0] != ']' ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, end);
 
-            return true;
+
+            free(operator);
+            free(access);
+            free(str);
+            free(end);
+
+            already_peeked = true;
+            peeked_value = data;
+
+            operator = runa_token(runa);
         }
 
         bool isoperation = false;
@@ -61,15 +72,35 @@ bool expression(Runa *runa, char *token, runa_value *value) {
         checktoop(mod, "%");
         checktoop(idiv, "//");
 
-        runa_value *peeked_value = NULL;
-        if(! runa_peek_local(runa, token, &peeked_value) ) return runa_send_error(runa, RUNA_UNKNOWN_SYMBOL, token);
+        if( (! already_peeked) && (! runa_peek_local(runa, token, &peeked_value)) ) return runa_send_error(runa, RUNA_UNKNOWN_SYMBOL, token);
 
-        runa_back(runa, operator);
 
+        if( already_peeked && isoperation ) {
+            if( peeked_value->kind == runa_string && (! isconcat) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, operator);
+
+            char *ctx = runa_token(runa);
+            runa_value rhs = {0};
+            if(! expression(runa, ctx, &rhs) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, ctx);
+
+            runa_value *data = (runa_value*)malloc(sizeof(runa_value));
+            data[0] = (runa_value) { .kind = runa_nil, .value.nil = NULL };
+            if( isconcat && rhs.kind == runa_string ) {
+                data->kind = runa_string;
+                char *lhs = runa_value_to_string(peeked_value);
+                int size = strlen(lhs) + strlen(rhs.value.string) + 1;
+                data->value.string = (char*)malloc(size);
+                sprintf(data->value.string, "%s%s", lhs, rhs.value.string);
+                memcpy(value, data, sizeof(runa_value));
+                return true;
+            }
+            else return runa_send_error(runa, RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE, token);
+        }
+        else
         if( isoperation ) {
+            runa_back(runa, operator);
             if( peeked_value->kind == runa_string ) return string_expression(runa, token, value);
             if( peeked_value->kind == runa_float || peeked_value->kind == runa_integer ) return numeric_expression(runa, token, value);
-        }
+        } else runa_back(runa, operator);
 
         memcpy(value, peeked_value, sizeof(runa_value));
         return true;
@@ -163,13 +194,14 @@ bool local(Runa *runa, char *token) {
     int j = 0;
     while(1) {
         char *data = runa_token(runa);
-        runa_value value = { .kind = runa_nil, .value.nil = NULL };
-        if(! expression(runa, data, &value) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
+        runa_value *value = malloc(sizeof(runa_value));
+        value[0] = (runa_value) { .kind = runa_nil, .value.nil = NULL };
+        if(! expression(runa, data, value) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
         values = realloc(values, sizeof(runa_value*) * (v + 1));
         values[v] = malloc(sizeof(runa_value));
-        memcpy(values[v], &value, sizeof(runa_value));
+        memcpy(values[v], value, sizeof(runa_value));
         v++;
-        runa_assign_local(runa, identifiers[j++], &value);
+        runa_assign_local(runa, identifiers[j++], value);
 
         char *operator = runa_token(runa);
         if( operator[0] != ',' ) {

@@ -70,6 +70,7 @@ void runa_assign_local(Runa *runa, char *id, runa_value *value);
 void runa_use_std(Runa *runa);
 
 typedef enum runa_error {
+    RUNA_OUT_OF_MEMORY,
     RUNA_IS_NOT_A_FUNCTION,
     RUNA_ARGUMENTS_COUNT_WRONG,
     RUNA_INVALID_SYNTAX_IN_CALL,
@@ -77,6 +78,7 @@ typedef enum runa_error {
     RUNA_UNKNOWN_SYMBOL,
     RUNA_INVALID_SYNTAX_OF_EXPRESSION,
     RUNA_ACCESS_INVALID_BECAUSE_IDENTIFIER,
+    RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE,
 } runa_error;
 
 bool runa_send_error(Runa *runa, runa_error error, char *what);
