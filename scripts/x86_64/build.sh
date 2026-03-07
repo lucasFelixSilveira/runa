@@ -13,7 +13,7 @@ for filename in *.c; do
     if [ -f "$filename" ]; then
         obj="../bin/${filename%.c}.o"
         echo "Compiling $filename"
-        clang -ggdb -c "$filename" -I../include -o "$obj"
+        gcc -m64 -lm -ggdb -c "$filename" -I../include -o "$obj"
         objs+=("$obj")
     fi
 done
@@ -24,6 +24,6 @@ if [ ${#objs[@]} -eq 0 ]; then
 fi
 
 echo "Creating static library..."
-llvm-ar rcs ../final/aarch64.a "${objs[@]}"
+ar rcs ../final/x86_64.a "${objs[@]}"
 
-echo "Library created at ../final/aarch64.a"
+echo "Library created at ../final/x86_64.a"

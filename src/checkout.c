@@ -50,8 +50,10 @@ bool isfloat(char *buff) {
 
 bool isstring(char *buff) {
     if( buff == NULL ) return false;
-    if(! (buff[0] == '"' || buff[0] == '\'') ) return false;
+
     int last = strlen(buff) - 1;
+    if(! (buff[0] == '"' || buff[0] == '\'') ) return false;
     if(! (buff[last] == '"' || buff[last] == '\'') ) return false;
+
     return true;
 }
