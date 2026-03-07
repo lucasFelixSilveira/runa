@@ -1,5 +1,3 @@
-local penis = { cm = 30 }
-public(penis["cm"], 0)
-
-local cm = penis["cm"]
-print("meu pinto tem " .. cm * 2 .. 'cm');
+local message = "Hello world!"
+local what_iam = " Just a simple developer!"
+print(message .. what_iam)
