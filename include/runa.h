@@ -57,8 +57,11 @@ typedef struct Runa {
     runa_stack *stack_locals;
     runa_locals locals;
     runa_value *result;
+    char need_free;
 } Runa;
 
+void runa_start(Runa *runa);
+void runa_free(Runa *runa);
 void runa_loadfile(Runa *runa, char *filename);
 void runa_push_function(Runa *runa, char *identifier, runa_callback cb, int argc);
 
@@ -67,6 +70,7 @@ void runa_push_result(Runa *runa, runa_value *value);
 void runa_push_local(Runa *runa, char *id, runa_value *value);
 bool runa_peek_local(Runa *runa, char *id, runa_value **value);
 void runa_assign_local(Runa *runa, char *id, runa_value *value);
+void runa_value_free(runa_value *value, bool real);
 
 void runa_use_std(Runa *runa);
 

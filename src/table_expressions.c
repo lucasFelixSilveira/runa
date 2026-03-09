@@ -31,11 +31,12 @@ bool table_expression(Runa *runa, char *token, runa_value *value) {
 
             runa_value rhs = { .kind = runa_nil, .value.nil = NULL };
             if(! expression(runa, data, &rhs) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
+            free(data);
 
             runa_value *rhs_value = (runa_value*)malloc(sizeof(runa_value));
-            rhs_value[0] = rhs;
+            *rhs_value = rhs;
             runa_table_field *field = (runa_table_field*)malloc(sizeof(runa_table_field*));
-            field[0] = (runa_table_field) {
+            *field = (runa_table_field) {
                 .identifier = identifier,
                 .value = (void*)rhs_value
             };

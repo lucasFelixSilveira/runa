@@ -1,4 +1,5 @@
 #include "runa.h"
+#include "lexer.h"
 #include "checkout.h"
 #include <ctype.h>
 #include <stdio.h>
@@ -22,7 +23,7 @@ char *runa_token(Runa *runa) {
 
     while(1) {
         int ci = getc(file);
-        if( ci == EOF ) break;
+        if( ci == EOF ) return strdup(RUNA_EOF);
         char c = (char)ci;
 
         if( c == '"' || c == '\'' ) {

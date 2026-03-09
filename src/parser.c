@@ -28,8 +28,7 @@ bool expression(Runa *runa, char *token, runa_value *value) {
         char *operator = runa_token(runa);
 
         if( operator[0] == '[' ) {
-            runa_value *table = (runa_value*)malloc(sizeof(runa_value));
-            table[0] =  (runa_value) { .kind = runa_nil, .value.nil = NULL };
+            runa_value *table = &(runa_value){ .kind = runa_nil, .value.nil = NULL };
             runa_peek_local(runa, token, &table);
 
             if( table->kind != runa_table ) {
@@ -41,6 +40,7 @@ bool expression(Runa *runa, char *token, runa_value *value) {
             char *access = runa_token(runa);
             runa_value index = { .kind = runa_nil, .value.nil = NULL };
             if(! expression(runa, access, &index) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, access);
+            free(access);
 
             char *str = runa_value_to_string(&index);
             runa_value *data = runa_access_table(table, str);
@@ -50,15 +50,12 @@ bool expression(Runa *runa, char *token, runa_value *value) {
             char *end = runa_token(runa);
             if( end[0] != ']' ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, end);
 
-
             free(operator);
-            free(access);
             free(str);
             free(end);
 
             already_peeked = true;
             peeked_value = data;
-
             operator = runa_token(runa);
         }
 
@@ -90,6 +87,7 @@ bool expression(Runa *runa, char *token, runa_value *value) {
                 data->value.string = (char*)malloc(size);
                 sprintf(data->value.string, "%s%s", lhs, rhs.value.string);
                 memcpy(value, data, sizeof(runa_value));
+                free(data);
                 return true;
             }
             else return runa_send_error(runa, RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE, token);
@@ -121,6 +119,8 @@ bool identifier(Runa *runa, char *token) {
 
     char *next = runa_token(runa);
     if( next[0] == '(' ) {
+        free(next);
+
         runa_function function;
         if(! check_if_is_function(runa, &function, token) ) return runa_send_error(runa, RUNA_IS_NOT_A_FUNCTION, token);
 
@@ -135,6 +135,7 @@ bool identifier(Runa *runa, char *token) {
 
             runa_value value = { .kind = runa_nil, .value.nil = NULL };
             if(! expression(runa, arg, &value) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
+            free(arg);
             args = realloc(args, sizeof(runa_value*) * (argc + 1));
             args[argc] = malloc(sizeof(runa_value));
             memcpy(args[argc], &value, sizeof(runa_value));
@@ -154,8 +155,24 @@ bool identifier(Runa *runa, char *token) {
 
         runa_stack_push(runa->arguments, args);
         function.function(runa);
+
+        for( int i = 0; i < argc; i++ ) {
+            free(args[i]);
+        }
+        free(args);
+        return true;
     }
 
+    if( strcmp(next, "=") == 0 ) {
+        free(next);
+
+        char *first = runa_token(runa);
+        runa_value value = { .kind = runa_nil, .value.nil = NULL };
+        if(! expression(runa, first, &value) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
+        runa_assign_local(runa, token, &value);
+    }
+
+    free(next);
     return false;
 }
 
@@ -172,12 +189,13 @@ bool local(Runa *runa, char *token) {
         if(! isidentifier(identifier) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_LOCAL, identifier);
 
         identifiers = realloc(identifiers, sizeof(char*) * (i + 1));
-        identifiers[i++] = identifier;
+        identifiers[i++] = strdup(identifier);
 
         char *operator = runa_token(runa);
 
         if(! (operator[0] == ',' || strcmp(operator, "=") == 0) ) {
             runa_back(runa, operator);
+            free(identifier);
 
             /* assign nil to identifiers */
             for( int j = 0; j < i; j++ ) {
@@ -188,7 +206,11 @@ bool local(Runa *runa, char *token) {
             return true;
         }
 
-        if( strcmp(operator, "=") == 0 ) break;
+        free(identifier);
+        if( strcmp(operator, "=") == 0 ) {
+            free(operator);
+            break;
+        }
     }
 
     /* Iterate values */
@@ -198,7 +220,7 @@ bool local(Runa *runa, char *token) {
         runa_value value = { .kind = runa_nil, .value.nil = NULL };
 
         if(! expression(runa, data, &value) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
-
+        free(data);
         values = realloc(values, sizeof(runa_value*) * (v + 1));
         values[v] = malloc(sizeof(runa_value));
         memcpy(values[v], &value, sizeof(runa_value));
@@ -209,6 +231,12 @@ bool local(Runa *runa, char *token) {
         char *operator = runa_token(runa);
         if( operator[0] != ',' ) {
             runa_back(runa, operator);
+
+            for( int j = 0; j < i; j++ ) free(identifiers[j++]);
+            free(identifiers);
+
+            for( int i = 0; i < v; i++ ) free(values[i]);
+            free(values);
             return true;
         }
     }
@@ -218,12 +246,18 @@ bool local(Runa *runa, char *token) {
 
 void runa_parse(Runa *runa) {
     runa->pushed = NULL;
-    int x = 10;
-    while(x > 0) {
+    while(1) {
         if( runa->error ) break;
         char *token = runa_token(runa);
-        if( local(runa, token) ) continue;
-        if( identifier(runa, token) ) continue;
-        x -= 1;
+        bool is_eof = strcmp(RUNA_EOF, token) == 0;
+        if( is_eof ) goto dump_token;
+        if( local(runa, token) ) goto dump_token;
+        if( identifier(runa, token) ) goto dump_token;
+
+        dump_token: {
+            free(token);
+            if(! is_eof ) continue;
+            break;
+        };
     }
 }

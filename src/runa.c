@@ -9,11 +9,46 @@
 #include "std.h"
 #include "vector.h"
 
-void runa_loadfile(Runa *runa, char *filename) {
-    runa->file = fopen(filename, "r+");
+void runa_start(Runa *runa) {
+    runa->functions_length = 0;
     runa->arguments = runa_stack_new(64);
     runa->stack_locals = runa_stack_new(128);
+    runa->functions = malloc(0);
+    runa->error = false;
+    runa->need_free = false;
+    runa->locals.length = 0;
+    runa->locals.values = malloc(0);
+}
+
+void runa_arguments_desconstructor(void *data) {
+    runa_value *value = (runa_value*)data;
+    runa_value_free(value, true);
+}
+
+void runa_locals_desconstructor(void *data) {
+    runa_value *value = (runa_value*)data;
+    runa_value_free(value, true);
+}
+
+void runa_free(Runa *runa) {
+    for( int i = 0; i < runa->locals.length; i++ ) {
+        runa_local local = runa->locals.values[i];
+        runa_value_free(local.value, true);
+        free(local.identifier);
+        free(local.value);
+    }
+    free(runa->locals.values);
+    runa_stack_free_all(runa->arguments, runa_arguments_desconstructor);
+    runa_stack_free_all(runa->stack_locals, runa_locals_desconstructor);
+    free(runa->functions);
+    runa->functions_length = 0;
+    free(runa);
+}
+
+void runa_loadfile(Runa *runa, char *filename) {
+    runa->file = fopen(filename, "r+");
     runa_parse(runa);
+    fclose(runa->file);
 }
 
 void runa_push_function(Runa *runa, char *id, runa_callback cb, int argc) {
@@ -29,8 +64,7 @@ void runa_push_local(Runa *runa, char *id, runa_value *value) {
     runa->locals.values = realloc(runa->locals.values, sizeof(runa_local) * (runa->locals.length + 1));
     runa_value *value_copy = malloc(sizeof(runa_value));
     memcpy(value_copy, value, sizeof(runa_value));
-    char *id_copy = (char*)malloc(strlen(id) + 1);
-    strcpy(id_copy, id);
+    char *id_copy = strdup(id);
     runa->locals.values[runa->locals.length++] = (runa_local) {
         .identifier = id_copy,
         .value = value_copy
@@ -77,14 +111,37 @@ void runa_destroy_local(Runa *runa, char *id) {
     }
 }
 
+void runa_value_free(runa_value *value, bool real) {
+    if( value->kind == runa_table ) {
+        runa_vector *table = (runa_vector*)value->value.table;
+        for( int i = 0; i < table->length; i++ ) {
+            runa_table_field *field = runa_vector_get(table, i);
+            free(field->identifier);
+            runa_value_free(field->value, real);
+            free(field->value);
+            free(field);
+        }
+        if( real ) runa_vector_free(table);
+    }
+
+    if( value->kind == runa_string ) {
+        free(value->value.string);
+        if(! real ) {
+            value->value.string = (char*)malloc(1);
+            value->value.string[0] = 0;
+        }
+    }
+
+    if( value->kind == runa_integer ) value->value.integer = 0;
+    if( value->kind == runa_integer ) value->value._float = 0.0;
+}
+
 void runa_assign_local(Runa *runa, char *id, runa_value *value) {
     for( int i = 0; i < runa->locals.length; i++ ) {
         runa_local *data = &runa->locals.values[i];
         if( data->identifier && strcmp(data->identifier, id) == 0 ) {
             if( data->value != NULL ) {
-                if( data->value->kind == runa_string && data->value->value.string != NULL ) {
-                    free(data->value->value.string);
-                }
+                runa_value_free(data->value, true);
                 free(data->value);
             }
 

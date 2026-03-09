@@ -80,6 +80,7 @@ bool numeric_expression(Runa *runa, char *token, runa_value *value) {
     tokens[len++] = operator;
 
     while(1) {
+        free(operator);
         char *data = runa_token(runa);
         char *num;
 
