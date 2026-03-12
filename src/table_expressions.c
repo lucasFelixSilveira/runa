@@ -27,7 +27,10 @@ bool table_expression(Runa *runa, char *token, runa_value *value) {
                 runa_back(runa, next);
                 data = identifier;
             }
-            else return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
+            else {
+                free(next);
+                return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
+            }
 
             runa_value rhs = { .kind = runa_nil, .value.nil = NULL };
             if(! expression(runa, data, &rhs) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
@@ -35,19 +38,30 @@ bool table_expression(Runa *runa, char *token, runa_value *value) {
 
             runa_value *rhs_value = (runa_value*)malloc(sizeof(runa_value));
             *rhs_value = rhs;
-            runa_table_field *field = (runa_table_field*)malloc(sizeof(runa_table_field*));
+            runa_table_field *field = (runa_table_field*)malloc(sizeof(runa_table_field));
             *field = (runa_table_field) {
                 .identifier = identifier,
                 .value = (void*)rhs_value
             };
 
             runa_vector_append(table, (void*)field);
+            free(next);
         }
-        else return runa_send_fatal_error(runa, RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE, token);
+        else {
+            free(next);
+            return runa_send_fatal_error(runa, RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE, token);
+        }
 
         char *after = runa_token(runa);
-        if( strcmp(after, ",") == 0 ) continue;
-        if( strcmp(after, "}") == 0 ) break;
+        if( strcmp(after, ",") == 0 ) {
+            free(after);
+            continue;
+        }
+        if( strcmp(after, "}") == 0 ) {
+            free(after);
+            break;
+        }
+        free(after);
         return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
     }
 

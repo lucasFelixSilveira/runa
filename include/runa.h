@@ -57,7 +57,6 @@ typedef struct Runa {
     runa_stack *stack_locals;
     runa_locals locals;
     runa_value *result;
-    char need_free;
 } Runa;
 
 void runa_start(Runa *runa);

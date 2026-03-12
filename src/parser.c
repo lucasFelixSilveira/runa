@@ -40,10 +40,11 @@ bool expression(Runa *runa, char *token, runa_value *value) {
             char *access = runa_token(runa);
             runa_value index = { .kind = runa_nil, .value.nil = NULL };
             if(! expression(runa, access, &index) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, access);
-            free(access);
 
             char *str = runa_value_to_string(&index);
             runa_value *data = runa_access_table(table, str);
+            if( isstring(access) ) free(index.value.string);
+            free(access);
 
             if( data->kind == runa_nil ) return runa_send_fatal_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, str);
 
@@ -134,7 +135,12 @@ bool identifier(Runa *runa, char *token) {
             };
 
             runa_value value = { .kind = runa_nil, .value.nil = NULL };
-            if(! expression(runa, arg, &value) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
+            if(! expression(runa, arg, &value) ) {
+                free(arg);
+                for( int i = 0; i < argc; i++ ) free(args[i]);
+                free(args);
+                return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
+            }
             free(arg);
             args = realloc(args, sizeof(runa_value*) * (argc + 1));
             args[argc] = malloc(sizeof(runa_value));
@@ -146,7 +152,11 @@ bool identifier(Runa *runa, char *token) {
                 break;
             };
 
-            if( next[0] != ',' ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
+            if( next[0] != ',' ) {
+                for( int i = 0; i < argc; i++ ) free(args[i]);
+                free(args);
+                return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
+            }
             free(next);
         }
 
@@ -155,11 +165,11 @@ bool identifier(Runa *runa, char *token) {
 
         runa_stack_push(runa->arguments, args);
         function.function(runa);
+        runa_stack_pop(runa->arguments);
 
-        for( int i = 0; i < argc; i++ ) {
-            free(args[i]);
-        }
+        for( int i = 0; i < argc; i++ ) free(args[i]);
         free(args);
+
         return true;
     }
 

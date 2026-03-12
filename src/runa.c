@@ -15,14 +15,14 @@ void runa_start(Runa *runa) {
     runa->stack_locals = runa_stack_new(128);
     runa->functions = malloc(0);
     runa->error = false;
-    runa->need_free = false;
     runa->locals.length = 0;
     runa->locals.values = malloc(0);
 }
 
 void runa_arguments_desconstructor(void *data) {
-    runa_value *value = (runa_value*)data;
-    runa_value_free(value, true);
+    runa_value **args = (runa_value**)data;
+    if(! args ) return;
+    free(args);
 }
 
 void runa_locals_desconstructor(void *data) {
