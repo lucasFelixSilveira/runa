@@ -207,7 +207,7 @@ runa_value *runa_access_table(runa_value *table, char *str) {
 bool runa_send_error(Runa *runa, runa_error error, char *what) {
     runa->error = true;
     switch(error) {
-        case RUNA_OUT_OF_MEMORY: printf("%s is out of memory\n");
+        case RUNA_OUT_OF_MEMORY: printf("%s is out of memory\n", what);
         break;
 
         case RUNA_IS_NOT_A_FUNCTION: printf("%s isn't a valid function.\n", what);
@@ -232,6 +232,9 @@ bool runa_send_error(Runa *runa, runa_error error, char *what) {
         break;
 
         case RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE: printf("The `%s` value is a Table, and tables can't do no one operation except concatenate.\n", what);
+        break;
+
+        case RUNA_TABLE_FIELD_INVALID: printf("The `%s` table field was not found.\n", what);
         break;
     }
 

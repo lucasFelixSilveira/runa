@@ -1,8 +1,9 @@
-local ar = {
-    "%al", -- 8-bits register
-    "%ax", -- 16-bits register
+local rax_array = {
+    "%al",  -- 8-bits register
+    "%ax",  -- 16-bits register
     "%eax", -- 32-bits register
     "%rax", -- 64-bits register
 }
 
-print(ar[mlog2(32 // 8)])
+local bytes = 4;
+print(rax_array[mlog2(bytes)])

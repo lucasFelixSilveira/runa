@@ -66,7 +66,7 @@ char *runa_token(Runa *runa) {
             continue;
         }
 
-        if(! isalnum(c) ) {
+        if(! isalnum(c) && c != '_' ) {
             if( length > 0 && isinteger(buffer) && c == '.' ) {
                 buffer[length++] = c;
                 buffer[length] = '\0';

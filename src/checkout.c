@@ -8,7 +8,7 @@ bool isidentifier(char *buff) {
 
     int i = 1;
     while(buff[i] != '\0') {
-        if(! isalnum((unsigned char)buff[i]) ) return false;
+        if(! isalnum((unsigned char)buff[i]) && buff[i] != '_' ) return false;
         i++;
     }
 

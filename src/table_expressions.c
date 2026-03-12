@@ -17,7 +17,10 @@ bool table_expression(Runa *runa, char *token, runa_value *value) {
 
     while(1) {
         char *lhs = runa_token(runa);
-        if( strcmp(lhs, "}") == 0 ) break;
+        if( strcmp(lhs, "}") == 0 ) {
+            free(lhs);
+            break;
+        };
 
         char *next = runa_token(runa);
 
@@ -53,7 +56,7 @@ bool table_expression(Runa *runa, char *token, runa_value *value) {
             if( strcmp(next, "=") == 0 ) data = runa_token(runa);
             else if( strcmp(next, ",") == 0 ) {
                 runa_back(runa, next);
-                data = lhs;
+                data = strdup(lhs);
             }
             else {
                 free(next);
@@ -68,10 +71,11 @@ bool table_expression(Runa *runa, char *token, runa_value *value) {
             *rhs_value = rhs;
             runa_table_field *field = (runa_table_field*)malloc(sizeof(runa_table_field));
             *field = (runa_table_field) {
-                .identifier = lhs,
+                .identifier = strdup(lhs),
                 .value = (void*)rhs_value
             };
 
+            free(lhs);
             runa_vector_append(table, (void*)field);
             free(next);
         }

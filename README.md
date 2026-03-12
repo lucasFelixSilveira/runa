@@ -24,3 +24,39 @@ local dev = { name = "Lucas", age = 16, bio = "I am just a developer" }
 print("Hello world! My name is " .. dev["name"] .. ", i am " .. dev["age"] .. ' and ' .. dev["bio"])
 -- Hello world! My name is Lucas, i am 16 and I am just a developer
 ```
+
+
+# How to use
+
+- `Get started` - You can run a lua file using Runa like this 
+```c
+#include "runa.h"
+#include <stdlib.h>
+
+int main() {
+    Runa *runa = malloc(sizeof(Runa));
+    runa_start(runa);
+    runa_loadfile(runa, "main.lua");
+    runa_free(runa);
+}
+```
+
+- `How to use std` - You should use `runa_use_std` function to allocate the std functions into the Runa state.
+```c
+#include "runa.h"
+#include <stdlib.h>
+
+int main() {
+    Runa *runa = malloc(sizeof(Runa));
+    runa_start(runa);
+    runa_loadfile(runa, "main.lua");
+    int flags = COMMON_STD | MORGANA_STD;
+    runa_use_std(runa, flags);
+    runa_free(runa);
+}
+```
+
+What is the `COMMON_STD` and `MORGANA_STD` flags?
+
+- `COMMON_STD` - Includes common std functions. As `print` and `log10`.
+- `MORGANA_STD` - Includes util std functions to Morgana. As `mlog2` and `error`.

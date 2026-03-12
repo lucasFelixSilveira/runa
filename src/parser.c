@@ -66,7 +66,7 @@ bool expression(Runa *runa, char *token, runa_value *value) {
             if( isstring(access) ) free(index.value.string);
             free(access);
 
-            if( data->kind == runa_nil ) return runa_send_fatal_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, str);
+            if( data->kind == runa_nil ) return runa_send_fatal_error(runa, RUNA_TABLE_FIELD_INVALID, str);
 
             char *end = runa_token(runa);
             if( end[0] != ']' ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, end);
@@ -300,7 +300,7 @@ void runa_parse(Runa *runa) {
         if( identifier(runa, token) ) goto dump_token;
 
         dump_token: {
-            // free(token);
+            free(token);
             if(! is_eof ) continue;
             break;
         };

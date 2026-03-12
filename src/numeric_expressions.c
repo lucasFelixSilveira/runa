@@ -79,6 +79,7 @@ bool numeric_expression(Runa *runa, char *token, runa_value *value) {
             free(tokens);
             return false;
         }
+        free(data);
 
         if( len >= cap ) {
             cap *= 2;
