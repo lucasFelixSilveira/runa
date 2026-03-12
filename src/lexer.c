@@ -6,11 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+long long position = 0;
+
 void runa_back(Runa *runa, char *token) {
     runa->pushed = token;
 }
 
 char *runa_token(Runa *runa) {
+    position += 1;
     if (runa->pushed) {
         char *t = runa->pushed;
         runa->pushed = NULL;

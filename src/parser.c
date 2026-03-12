@@ -9,6 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+int last_did = 0;
+typedef enum last_did_flags {
+    FUNCTION_CALLED = (1 << 0),
+} last_did_flags;
+
 bool check_if_is_function(Runa *runa, runa_function *function, char *identifier) {
     for( int i = 0; i < runa->functions_length; i++ ) {
         runa_function data = runa->functions[i];
@@ -20,11 +25,26 @@ bool check_if_is_function(Runa *runa, runa_function *function, char *identifier)
     return false;
 }
 
+bool identifier(Runa *runa, char *token);
+
 bool expression(Runa *runa, char *token, runa_value *value) {
     bool already_peeked = false;
     runa_value *peeked_value = NULL;
 
     if( isidentifier(token) ) {
+
+        if( identifier(runa, token) ) {
+            if( last_did & FUNCTION_CALLED ) {
+                last_did &= ~FUNCTION_CALLED;
+                runa_value *result = runa->result;
+                memcpy(value, result, sizeof(runa_value));
+                free(result);
+                return true;
+            }
+
+            return runa_send_fatal_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
+        }
+
         char *operator = runa_token(runa);
 
         if( operator[0] == '[' ) {
@@ -128,6 +148,7 @@ bool identifier(Runa *runa, char *token) {
     char *next = runa_token(runa);
     if( next[0] == '(' ) {
         free(next);
+        int o = position;
 
         runa_function function;
         if(! check_if_is_function(runa, &function, token) ) return runa_send_error(runa, RUNA_IS_NOT_A_FUNCTION, token);
@@ -174,17 +195,19 @@ bool identifier(Runa *runa, char *token) {
 
         runa_stack_push(runa->arguments, args);
         function.function(runa);
+        last_did |= FUNCTION_CALLED;
         runa_stack_pop(runa->arguments);
 
+        int n = position;
         for( int i = 0; i < argc; i++ ) {
-            if( args[i]->kind == runa_string ) free(args[i]->value.string);
+            if( args[i]->kind == runa_string && (o - n) >= 2 ) free(args[i]->value.string);
             free(args[i]);
         }
         free(args);
 
         return true;
     }
-
+    else
     if( strcmp(next, "=") == 0 ) {
         free(next);
 
@@ -194,7 +217,7 @@ bool identifier(Runa *runa, char *token) {
         runa_assign_local(runa, token, &value);
     }
 
-    free(next);
+    runa_back(runa, next);
     return false;
 }
 
@@ -277,7 +300,7 @@ void runa_parse(Runa *runa) {
         if( identifier(runa, token) ) goto dump_token;
 
         dump_token: {
-            free(token);
+            // free(token);
             if(! is_eof ) continue;
             break;
         };

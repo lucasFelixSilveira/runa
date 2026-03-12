@@ -71,6 +71,10 @@ void runa_push_local(Runa *runa, char *id, runa_value *value) {
     };
 }
 
+void runa_push_result(Runa *runa, runa_value *value) {
+    runa->result = value;
+}
+
 bool runa_peek_local(Runa *runa, char *id, runa_value **value) {
     for( int i = 0; i < runa->locals.length; i++ ) {
         runa_local *data = &runa->locals.values[i];
@@ -245,6 +249,7 @@ bool runa_send_error_type(Runa *runa, char *where, char *expected, char *receive
     return true;
 }
 
-void runa_use_std(Runa *runa) {
-    ___runa_use_std__(runa);
+void runa_use_std(Runa *runa, int flags) {
+    if( flags & COMMON_STD ) ___runa_use_std__(runa);
+    if( flags & MORGANA_STD ) ___runa_use_morgana_std__(runa);
 }

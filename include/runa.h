@@ -71,7 +71,7 @@ bool runa_peek_local(Runa *runa, char *id, runa_value **value);
 void runa_assign_local(Runa *runa, char *id, runa_value *value);
 void runa_value_free(runa_value *value, bool real);
 
-void runa_use_std(Runa *runa);
+void runa_use_std(Runa *runa, int flags);
 
 typedef enum runa_error {
     RUNA_OUT_OF_MEMORY,
@@ -84,6 +84,11 @@ typedef enum runa_error {
     RUNA_ACCESS_INVALID_BECAUSE_IDENTIFIER,
     RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE,
 } runa_error;
+
+typedef enum std_flags {
+    COMMON_STD  = 1 << 1,
+    MORGANA_STD = 1 << 2,
+} std_flags;
 
 bool runa_send_error(Runa *runa, runa_error error, char *what);
 bool runa_send_fatal_error(Runa *runa, runa_error error, char *what);
