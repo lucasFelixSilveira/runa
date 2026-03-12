@@ -78,6 +78,7 @@ bool expression(Runa *runa, char *token, runa_value *value) {
             char *ctx = runa_token(runa);
             runa_value rhs = {0};
             if(! expression(runa, ctx, &rhs) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, ctx);
+            free(operator);
 
             runa_value *data = (runa_value*)malloc(sizeof(runa_value));
             data[0] = (runa_value) { .kind = runa_nil, .value.nil = NULL };
@@ -87,11 +88,17 @@ bool expression(Runa *runa, char *token, runa_value *value) {
                 int size = strlen(lhs) + strlen(rhs.value.string) + 1;
                 data->value.string = (char*)malloc(size);
                 sprintf(data->value.string, "%s%s", lhs, rhs.value.string);
+                free(lhs);
+                if( isstring(ctx) ) free(rhs.value.string);
+                free(ctx);
                 memcpy(value, data, sizeof(runa_value));
                 free(data);
                 return true;
             }
-            else return runa_send_error(runa, RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE, token);
+            else {
+                free(ctx);
+                return runa_send_error(runa, RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE, token);
+            }
         }
         else
         if( isoperation ) {
@@ -142,6 +149,7 @@ bool identifier(Runa *runa, char *token) {
                 return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
             }
             free(arg);
+
             args = realloc(args, sizeof(runa_value*) * (argc + 1));
             args[argc] = malloc(sizeof(runa_value));
             memcpy(args[argc], &value, sizeof(runa_value));
@@ -157,6 +165,7 @@ bool identifier(Runa *runa, char *token) {
                 free(args);
                 return runa_send_error(runa, RUNA_INVALID_SYNTAX_IN_CALL, token);
             }
+
             free(next);
         }
 
@@ -167,7 +176,10 @@ bool identifier(Runa *runa, char *token) {
         function.function(runa);
         runa_stack_pop(runa->arguments);
 
-        for( int i = 0; i < argc; i++ ) free(args[i]);
+        for( int i = 0; i < argc; i++ ) {
+            if( args[i]->kind == runa_string ) free(args[i]->value.string);
+            free(args[i]);
+        }
         free(args);
 
         return true;
