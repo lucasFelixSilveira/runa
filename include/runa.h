@@ -84,6 +84,7 @@ typedef enum runa_error {
     RUNA_ACCESS_INVALID_BECAUSE_IDENTIFIER,
     RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE,
     RUNA_TABLE_FIELD_INVALID,
+    RUNA_UNMATCHED_END,
 } runa_error;
 
 typedef enum std_flags {

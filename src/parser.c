@@ -4,6 +4,7 @@
 #include "stack.h"
 #include "checkout.h"
 #include "expressions.h"
+#include "statements.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -296,6 +297,7 @@ void runa_parse(Runa *runa) {
         char *token = runa_token(runa);
         bool is_eof = strcmp(RUNA_EOF, token) == 0;
         if( is_eof ) goto dump_token;
+        if( statements(runa, token) ) goto dump_token;
         if( local(runa, token) ) goto dump_token;
         if( identifier(runa, token) ) goto dump_token;
 

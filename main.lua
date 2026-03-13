@@ -5,5 +5,5 @@ local rax_array = {
     "%rax", -- 64-bits register
 }
 
-local bytes = 4;
-print(rax_array[mlog2(bytes)])
+local x = 19
+if x <= 3 or 1 ~= 2 then print("Hello world") end

@@ -236,6 +236,9 @@ bool runa_send_error(Runa *runa, runa_error error, char *what) {
 
         case RUNA_TABLE_FIELD_INVALID: printf("The `%s` table field was not found.\n", what);
         break;
+
+        case RUNA_UNMATCHED_END: printf("Unmatched end.\n");
+        break;
     }
 
     return true;
