@@ -1,16 +1,24 @@
 #include "lexer.h"
 #include "parser.h"
 #include "runa.h"
+#include "stack.h"
 #include <iso646.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+
 bool if_statement(Runa *runa);
+bool else_statement(Runa *runa);
+bool elseif_statement(Runa *runa);
+bool end_statement(Runa *runa);
 
 bool statements(Runa *runa, char *token) {
     if( strcmp(token, "if") == 0 ) return if_statement(runa);
+    if( strcmp(token, "else") == 0 ) return else_statement(runa);
+    if( strcmp(token, "elseif") == 0 ) return elseif_statement(runa);
+    if( strcmp(token, "end") == 0 ) return end_statement(runa);
     return false;
 }
 
@@ -56,8 +64,57 @@ bool is_less(runa_value *v_lhs, runa_value *v_rhs) {
     return false;
 }
 
+bool else_statement(Runa *runa) {
+    bool last = runa_stack_peek(runa->if_stack);
+
+    if( last ) {
+        int depth = 1;
+        while(depth > 0) {
+            char *tok = runa_token(runa);
+            if(! tok ) return runa_send_error(runa,RUNA_UNMATCHED_END,NULL);
+
+            if( strcmp(tok, "if") == 0 ) depth++;
+            else if( strcmp(tok, "end") == 0 ) depth--;
+
+            free(tok);
+        }
+    }
+
+    return true;
+}
+
+bool elseif_statement(Runa *runa) {
+    bool last = runa_stack_peek(runa->if_stack);
+
+    if( last ) {
+        int depth = 1;
+        while(depth > 0) {
+            char *tok = runa_token(runa);
+            if(! tok ) return runa_send_error(runa,RUNA_UNMATCHED_END,NULL);
+
+            if( strcmp(tok, "if") == 0 ) depth++;
+            else if( strcmp(tok, "end") == 0 ) depth--;
+            else if( strcmp(tok, "elseif") == 0 && depth == 1 ) break;
+            else if( strcmp(tok, "else") == 0 && depth == 1 ) break;
+
+            free(tok);
+        }
+
+        return true;
+    }
+
+    return if_statement(runa);
+}
+
+bool end_statement(Runa *runa) {
+    bool *b = runa_stack_pop(runa->if_stack);
+    free(b);
+    return true;
+}
 
 bool if_statement(Runa *runa) {
+    state = false;
+    mod = 0;
     while(1) {
         char *lhs = runa_token(runa);
         if( strcmp(lhs, "not") == 0 ) {
@@ -117,17 +174,21 @@ bool if_statement(Runa *runa) {
     }
 
     if(! state ) {
-        int i = 0, j = 1;
-        char *data;
-        for(; j > 0; i++ ) {
-            data = runa_token(runa);
-            if( strlen(data) == 0 ) break;
-            j += ( strcmp("end", data)  == 0 ) ? -1
-               : ( strcmp("then", data) == 0 || strcmp("do", data) == 0 ) ? 1 : 0;
-            free(data);
+        int depth = 1;
+        while(depth > 0) {
+            char *tok = runa_token(runa);
+            if( strcmp(tok, "if") == 0 ) depth++;
+            else if( strcmp(tok, "end") == 0 ) depth--;
+            else if( strcmp(tok, "else") == 0 && depth == 1 ) {
+                runa_back(runa, tok);
+                break;
+            }
+            free(tok);
         }
-        if( j != 0 ) runa_send_error(runa, RUNA_UNMATCHED_END, NULL);
     }
 
+    bool *b = (bool*)malloc(1);
+    *b = state;
+    runa_stack_push(runa->if_stack, b);
     return true;
 }

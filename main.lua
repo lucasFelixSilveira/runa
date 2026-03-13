@@ -4,6 +4,4 @@ local rax_array = {
     "%eax", -- 32-bits register
     "%rax", -- 64-bits register
 }
-
-local x = 19
-if x <= 3 or 1 ~= 2 then print("Hello world") end
+if 1 then end

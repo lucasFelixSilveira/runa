@@ -57,6 +57,7 @@ typedef struct Runa {
     runa_stack *stack_locals;
     runa_locals locals;
     runa_value *result;
+    runa_stack *if_stack;
 } Runa;
 
 void runa_start(Runa *runa);
@@ -91,6 +92,15 @@ typedef enum std_flags {
     COMMON_STD  = 1 << 1,
     MORGANA_STD = 1 << 2,
 } std_flags;
+
+typedef enum runa_scope {
+    RUNA_SCOPE_GLOBAL,
+    RUNA_SCOPE_LOCAL,
+    RUNA_SCOPE_FUNCTION,
+    RUNA_SCOPE_ELSEIF,
+    RUNA_SCOPE_ELSE,
+    RUNA_SCOPE_IF,
+} runa_scope;
 
 bool runa_send_error(Runa *runa, runa_error error, char *what);
 bool runa_send_fatal_error(Runa *runa, runa_error error, char *what);

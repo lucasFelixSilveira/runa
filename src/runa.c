@@ -17,6 +17,7 @@ void runa_start(Runa *runa) {
     runa->error = false;
     runa->locals.length = 0;
     runa->locals.values = malloc(0);
+    runa->if_stack = runa_stack_new(64);
 }
 
 void runa_arguments_desconstructor(void *data) {
@@ -28,6 +29,10 @@ void runa_arguments_desconstructor(void *data) {
 void runa_locals_desconstructor(void *data) {
     runa_value *value = (runa_value*)data;
     runa_value_free(value, true);
+}
+
+void runa_if_stack_desconstructor(void *data) {
+    free(data);
 }
 
 void runa_free(Runa *runa) {
@@ -42,6 +47,7 @@ void runa_free(Runa *runa) {
     runa_stack_free_all(runa->stack_locals, runa_locals_desconstructor);
     free(runa->functions);
     runa->functions_length = 0;
+    runa_stack_free_all(runa->if_stack, NULL);
     free(runa);
 }
 
