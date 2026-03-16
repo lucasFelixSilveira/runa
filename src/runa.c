@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +9,16 @@
 #include "runa.h"
 #include "std.h"
 #include "vector.h"
+
+void printfln(char *format, ...) {
+    va_list args;
+    char *str = (char*)malloc(strlen(format) + 2);
+    sprintf(str, "%s\n", format);
+    va_start(args, format);
+    vprintf(str, args);
+    va_end(args);
+    free(str);
+}
 
 void runa_start(Runa *runa) {
     runa->functions_length = 0;
@@ -219,41 +230,9 @@ runa_value *runa_access_table(runa_value *table, char *str) {
 
 bool runa_send_error(Runa *runa, runa_error error, char *what) {
     runa->error = true;
-    switch(error) {
-        case RUNA_OUT_OF_MEMORY: printf("%s is out of memory\n", what);
-        break;
-
-        case RUNA_IS_NOT_A_FUNCTION: printf("%s isn't a valid function.\n", what);
-        break;
-
-        case RUNA_ARGUMENTS_COUNT_WRONG: printf("the function %s arguments count is wrong.\n", what);
-        break;
-
-        case RUNA_INVALID_SYNTAX_IN_CALL: printf("The syntax call of %s is wrong.\n", what);
-        break;
-
-        case RUNA_INVALID_SYNTAX_IN_LOCAL: printf("The syntax local of %s is wrong.\n", what);
-        break;
-
-        case RUNA_UNKNOWN_SYMBOL: printf("The symbol %s is unknown.\n", what);
-        break;
-
-        case RUNA_INVALID_SYNTAX_OF_EXPRESSION: printf("Invalid syntax of expression. %s was the reason.\n", what);
-        break;
-
-        case RUNA_ACCESS_INVALID_BECAUSE_IDENTIFIER: printf("You can't use access opration in %s. Because it isn't a table.\n", what);
-        break;
-
-        case RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE: printf("The `%s` value is a Table, and tables can't do no one operation except concatenate.\n", what);
-        break;
-
-        case RUNA_TABLE_FIELD_INVALID: printf("The `%s` table field was not found.\n", what);
-        break;
-
-        case RUNA_UNMATCHED_END: printf("Unmatched end.\n");
-        break;
-    }
-
+    #define X(kind, name) case kind: printfln(name, (what == NULL) ? "" : what); break;
+    switch(error) { RUNA_ERROR_FIELDS };
+    #undef X
     return true;
 }
 

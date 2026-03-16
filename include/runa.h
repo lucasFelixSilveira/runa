@@ -23,6 +23,23 @@ typedef struct runa_table_field {
 typedef enum runa_value_kind { RUNA_VALUE_KIND_FIELDS } runa_value_kind;
 #undef X
 
+#define RUNA_ERROR_FIELDS \
+    X(RUNA_OUT_OF_MEMORY,                             "%s is out of memory") \
+    X(RUNA_IS_NOT_A_FUNCTION,                         "%s isn't a valid function.") \
+    X(RUNA_ARGUMENTS_COUNT_WRONG,                     "the function %s arguments count is wrong.") \
+    X(RUNA_INVALID_SYNTAX_IN_CALL,                    "the syntax call of %s is wrong.") \
+    X(RUNA_INVALID_SYNTAX_IN_LOCAL,                   "the syntax local of %s is wrong.") \
+    X(RUNA_UNKNOWN_SYMBOL,                            "the symbol %s is unknown.") \
+    X(RUNA_INVALID_SYNTAX_OF_EXPRESSION,              "invalid syntax of expression. `%s` was the reason.") \
+    X(RUNA_ACCESS_INVALID_BECAUSE_IDENTIFIER,         "you can't use access opration in %s. Because it isn't a table.") \
+    X(RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE, "the `%s` value is a Table, and tables can't do no one operation except concatenate.") \
+    X(RUNA_TABLE_FIELD_INVALID,                       "The `%s` table field was not found.") \
+    X(RUNA_UNMATCHED_END,                             "unmatched end %s")
+
+#define X(kind, name) kind,
+typedef enum runa_error { RUNA_ERROR_FIELDS } runa_error;
+#undef X
+
 typedef struct runa_value {
     runa_value_kind kind;
     union {
@@ -76,20 +93,6 @@ void runa_assign_local(Runa *runa, char *id, runa_value *value);
 void runa_value_free(runa_value *value, bool real);
 
 void runa_use_std(Runa *runa, int flags);
-
-typedef enum runa_error {
-    RUNA_OUT_OF_MEMORY,
-    RUNA_IS_NOT_A_FUNCTION,
-    RUNA_ARGUMENTS_COUNT_WRONG,
-    RUNA_INVALID_SYNTAX_IN_CALL,
-    RUNA_INVALID_SYNTAX_IN_LOCAL,
-    RUNA_UNKNOWN_SYMBOL,
-    RUNA_INVALID_SYNTAX_OF_EXPRESSION,
-    RUNA_ACCESS_INVALID_BECAUSE_IDENTIFIER,
-    RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE,
-    RUNA_TABLE_FIELD_INVALID,
-    RUNA_UNMATCHED_END,
-} runa_error;
 
 typedef enum std_flags {
     COMMON_STD  = 1 << 1,
