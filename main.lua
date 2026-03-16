@@ -4,4 +4,10 @@ local rax_array = {
     "%eax", -- 32-bits register
     "%rax", -- 64-bits register
 }
-if 1 then end
+
+local bits = 64
+local bytes = bits // 8
+
+local position = mlog2(bytes)
+local register = rax_array[position]
+print(register)

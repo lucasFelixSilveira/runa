@@ -54,7 +54,6 @@ bool is_greater(runa_value *v_lhs, runa_value *v_rhs) {
     return false;
 }
 
-
 bool is_less(runa_value *v_lhs, runa_value *v_rhs) {
     if( v_lhs->kind != v_rhs->kind ) return false;
     int kind = v_lhs->kind;
@@ -179,10 +178,7 @@ bool if_statement(Runa *runa) {
             char *tok = runa_token(runa);
             if( strcmp(tok, "if") == 0 ) depth++;
             else if( strcmp(tok, "end") == 0 ) depth--;
-            else if( strcmp(tok, "else") == 0 && depth == 1 ) {
-                runa_back(runa, tok);
-                break;
-            }
+            else if( strcmp(tok, "else") == 0 && depth == 1 ) break;
             free(tok);
         }
     }

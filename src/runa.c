@@ -201,11 +201,22 @@ char *runa_value_kind_str(runa_value_kind kind) {
 }
 
 runa_value *runa_access_table(runa_value *table, char *str) {
-    runa_value *data = &(runa_value) { .kind = runa_nil, .value.nil = NULL };
+    runa_value *data = malloc(sizeof(runa_value));
     runa_vector *vec = (runa_vector*)table->value.table;
     for( int i = 0; i < vec->length; i++ ) {
         runa_table_field *field = runa_vector_get(vec, i);
-        if( strcmp(field->identifier, str) == 0 ) data = (runa_value*)field->value;
+        if( strcmp(field->identifier, str) == 0 ) {
+            runa_value *val = (runa_value*)field->value;
+            data->kind = val->kind;
+
+            if( val->kind == runa_string ) {
+                data->value.string = strdup(val->value.string);
+                break;
+            }
+
+            data->value = val->value;
+            break;
+        }
     }
     return data;
 }
