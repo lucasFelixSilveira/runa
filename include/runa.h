@@ -12,13 +12,16 @@ typedef struct runa_table_field {
     void *value;
 } runa_table_field;
 
-typedef enum runa_value_kind {
-    runa_string,
-    runa_integer,
-    runa_float,
-    runa_table,
-    runa_nil
-} runa_value_kind;
+#define RUNA_VALUE_KIND_FIELDS  \
+    X(runa_string, "string")    \
+    X(runa_integer, "integer")  \
+    X(runa_float, "float")      \
+    X(runa_table, "table")      \
+    X(runa_nil, "nil")
+
+#define X(kind, name) kind,
+typedef enum runa_value_kind { RUNA_VALUE_KIND_FIELDS } runa_value_kind;
+#undef X
 
 typedef struct runa_value {
     runa_value_kind kind;

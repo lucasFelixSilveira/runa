@@ -178,9 +178,9 @@ char *runa_value_to_string(runa_value *value) {
         return data;
     }
 
-    if(value->kind == runa_float) {
+    if( value->kind == runa_float ) {
         int digits = snprintf(NULL, 0, "%Lg", value->value._float);
-        char *data = malloc(digits + 1);
+        char *data = (char*)malloc(digits + 1);
         snprintf(data, digits + 1, "%Lg", value->value._float);
         return data;
     }
@@ -191,13 +191,9 @@ char *runa_value_to_string(runa_value *value) {
 }
 
 char *runa_value_kind_str(runa_value_kind kind) {
-    switch(kind) {
-        case runa_string: return "string";
-        case runa_integer: return "integer";
-        case runa_float: return "float";
-        case runa_nil: return "nil";
-        case runa_table: return "table";
-    }
+    #define X(kind, name) case kind: return name;
+    switch(kind) { RUNA_VALUE_KIND_FIELDS }
+    #undef X
 }
 
 runa_value *runa_access_table(runa_value *table, char *str) {
