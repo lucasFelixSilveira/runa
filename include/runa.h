@@ -5,23 +5,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-typedef void (*runa_callback)(void *runa);
-
-typedef struct runa_table_field {
-    char *identifier;
-    void *value;
-} runa_table_field;
-
 #define RUNA_VALUE_KIND_FIELDS  \
     X(runa_string, "string")    \
     X(runa_integer, "integer")  \
     X(runa_float, "float")      \
     X(runa_table, "table")      \
     X(runa_nil, "nil")
-
-#define X(kind, name) kind,
-typedef enum runa_value_kind { RUNA_VALUE_KIND_FIELDS } runa_value_kind;
-#undef X
 
 #define RUNA_ERROR_FIELDS \
     X(RUNA_OUT_OF_MEMORY,                             "%s is out of memory") \
@@ -37,8 +26,19 @@ typedef enum runa_value_kind { RUNA_VALUE_KIND_FIELDS } runa_value_kind;
     X(RUNA_UNMATCHED_END,                             "unmatched end %s")
 
 #define X(kind, name) kind,
+typedef enum runa_value_kind { RUNA_VALUE_KIND_FIELDS } runa_value_kind;
+#undef X
+
+#define X(kind, name) kind,
 typedef enum runa_error { RUNA_ERROR_FIELDS } runa_error;
 #undef X
+
+typedef void (*runa_callback)(void *runa);
+
+typedef struct runa_table_field {
+    char *identifier;
+    void *value;
+} runa_table_field;
 
 typedef struct runa_value {
     runa_value_kind kind;
