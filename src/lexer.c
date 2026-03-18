@@ -1,27 +1,59 @@
 #include "runa.h"
 #include "lexer.h"
 #include "checkout.h"
+#include "stack.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 long long position = 0;
+int codeid = 0;
+int pos[64];
 
 void runa_back(Runa *runa, char *token) {
     runa->pushed = token;
 }
 
 char *runa_token(Runa *runa) {
+    char buffer[2048] = {0};
     position += 1;
-    if (runa->pushed) {
+    if( runa->pushed ) {
         char *t = runa->pushed;
         runa->pushed = NULL;
         return t;
     }
 
+    if( runa->code_stack->length > 0 ) {
+        char *code = runa_stack_peek(runa->code_stack);
+        int len = strlen(code);
+        int locale = pos[codeid];
+        int i = locale;
+        int j = 0;
+
+        for(; i < len; i++) {
+            if(i >= (len - 2)) {
+                char *data = runa_stack_pop(runa->code_stack);
+                buffer[j++] = code[i];
+                free(data);
+                char *code = strdup(buffer);
+                pos[codeid--] = 0;
+                buffer[0] = 0;
+                runa->should_leave = true;
+                return code;
+            }
+
+            if( code[i] == '\n' ) break;
+            buffer[j++] = code[i];
+        }
+
+        buffer[j] = '\0';
+        pos[codeid] = i + 1;
+
+        return strdup(buffer);
+    }
+
     FILE *file = runa->file;
-    char buffer[2048] = {0};
     int length = 0;
 
     while(1) {

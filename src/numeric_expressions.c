@@ -49,7 +49,7 @@ bool numeric_expression(Runa *runa, char *token, runa_value *value) {
     char *first;
     if(! resolve_numeric_token(runa, token, &first) ) return runa_send_error(runa, RUNA_INVALID_SYNTAX_OF_EXPRESSION, token);
 
-    if (! isoperation ) {
+    if(! isoperation ) {
         runa_back(runa, operator);
         long double result = strtold(first, NULL);
         if( (long long)result == result ) {

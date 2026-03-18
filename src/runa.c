@@ -26,9 +26,18 @@ void runa_start(Runa *runa) {
     runa->stack_locals = runa_stack_new(128);
     runa->functions = malloc(0);
     runa->error = false;
-    runa->locals.length = 0;
-    runa->locals.values = malloc(0);
+    runa->locals = malloc(sizeof(runa_locals));
+    runa->locals->length = 0;
+    runa->locals->values = malloc(0);
     runa->if_stack = runa_stack_new(64);
+    runa->code_stack = runa_stack_new(64);
+    runa->frames = runa_stack_new(64);
+
+    runa->last_did = 0;
+    runa->flags = 0;
+    runa->mod = 0;
+    runa->state = false;
+    runa->should_leave = false;
 }
 
 void runa_arguments_desconstructor(void *data) {
@@ -47,18 +56,20 @@ void runa_if_stack_desconstructor(void *data) {
 }
 
 void runa_free(Runa *runa) {
-    for( int i = 0; i < runa->locals.length; i++ ) {
-        runa_local local = runa->locals.values[i];
+    for( int i = 0; i < runa->locals->length; i++ ) {
+        runa_local local = runa->locals->values[i];
         runa_value_free(local.value, true);
         free(local.identifier);
         free(local.value);
     }
-    free(runa->locals.values);
+    free(runa->locals->values);
+    free(runa->locals);
     runa_stack_free_all(runa->arguments, runa_arguments_desconstructor);
     runa_stack_free_all(runa->stack_locals, runa_locals_desconstructor);
     free(runa->functions);
     runa->functions_length = 0;
     runa_stack_free_all(runa->if_stack, NULL);
+    runa_stack_free_all(runa->code_stack, NULL);
     free(runa);
 }
 
@@ -78,27 +89,35 @@ void runa_push_function(Runa *runa, char *id, runa_callback cb, int argc) {
 }
 
 void runa_push_local(Runa *runa, char *id, runa_value *value) {
-    runa->locals.values = realloc(runa->locals.values, sizeof(runa_local) * (runa->locals.length + 1));
+    runa->locals->values = realloc(runa->locals->values, sizeof(runa_local) * (runa->locals->length + 1));
     runa_value *value_copy = malloc(sizeof(runa_value));
     memcpy(value_copy, value, sizeof(runa_value));
     char *id_copy = strdup(id);
-    runa->locals.values[runa->locals.length++] = (runa_local) {
+    runa->locals->values[runa->locals->length++] = (runa_local) {
         .identifier = id_copy,
         .value = value_copy
     };
 }
 
-void runa_push_result(Runa *runa, runa_value *value) {
-    runa->result = value;
-}
-
 bool runa_peek_local(Runa *runa, char *id, runa_value **value) {
-    for( int i = 0; i < runa->locals.length; i++ ) {
-        runa_local *data = &runa->locals.values[i];
+    for( int i = 0; i < runa->locals->length; i++ ) {
+        runa_local *data = &runa->locals->values[i];
         if( data->identifier && strcmp(data->identifier, id) == 0 ) {
             if( data->value == NULL ) return false;
             *value = data->value;
             return true;
+        }
+    }
+
+    for( int s = runa->stack_locals->length - 1; s >= 0; s-- ) {
+        runa_locals *scope = runa->stack_locals->values[s];
+        for( int i = 0; i < scope->length; i++ ) {
+            runa_local *data = &scope->values[i];
+            if( data->identifier && strcmp(data->identifier, id) == 0 ) {
+                if( data->value == NULL ) return false;
+                *value = data->value;
+                return true;
+            }
         }
     }
 
@@ -107,8 +126,8 @@ bool runa_peek_local(Runa *runa, char *id, runa_value **value) {
 }
 
 void runa_destroy_local(Runa *runa, char *id) {
-    for( int i = 0; i < runa->locals.length; i++ ) {
-        runa_local *data = &runa->locals.values[i];
+    for( int i = 0; i < runa->locals->length; i++ ) {
+        runa_local *data = &runa->locals->values[i];
         if( data->identifier && strcmp(data->identifier, id) == 0 ) {
             free(data->identifier);
             if( data->value != NULL ) {
@@ -116,17 +135,17 @@ void runa_destroy_local(Runa *runa, char *id) {
                 free(data->value);
             }
 
-            for( int j = i; j < runa->locals.length - 1; j++ )
-            /* -> */ runa->locals.values[j] = runa->locals.values[j + 1];
+            for( int j = i; j < runa->locals->length - 1; j++ )
+            /* -> */ runa->locals->values[j] = runa->locals->values[j + 1];
 
-            runa->locals.length--;
-            if( runa->locals.length > 0 ) {
-                runa->locals.values = realloc(runa->locals.values, sizeof(runa_local) * runa->locals.length);
+            runa->locals->length--;
+            if( runa->locals->length > 0 ) {
+                runa->locals->values = realloc(runa->locals->values, sizeof(runa_local) * runa->locals->length);
                 break;
             }
 
-            free(runa->locals.values);
-            runa->locals.values = NULL;
+            free(runa->locals->values);
+            runa->locals->values = NULL;
             break;
         }
     }
@@ -158,25 +177,55 @@ void runa_value_free(runa_value *value, bool real) {
 }
 
 void runa_assign_local(Runa *runa, char *id, runa_value *value) {
-    for( int i = 0; i < runa->locals.length; i++ ) {
-        runa_local *data = &runa->locals.values[i];
-        if( data->identifier && strcmp(data->identifier, id) == 0 ) {
-            if( data->value != NULL ) {
+    for( int i = 0; i < runa->locals->length; i++ ) {
+        runa_local *data = &runa->locals->values[i];
+        if( data->identifier && strcmp(data->identifier, id) == 0 ) goto assign_here;
+    }
+
+    for( int s = runa->stack_locals->length - 1; s >= 0; s-- ) {
+        runa_locals *scope = runa->stack_locals->values[s];
+        for( int i = 0; i < scope->length; i++ ) {
+            runa_local *data = &scope->values[i];
+            if( data->identifier && strcmp(data->identifier, id) == 0 ) {
                 runa_value_free(data->value, true);
                 free(data->value);
-            }
 
-            data->value = malloc(sizeof(runa_value));
-            memcpy(data->value, value, sizeof(runa_value));
-            if( value->kind == runa_string && value->value.string != NULL ) {
-                data->value->value.string = malloc(strlen(value->value.string) + 1);
-                strcpy(data->value->value.string, value->value.string);
+                data->value = malloc(sizeof(runa_value));
+                memcpy(data->value, value, sizeof(runa_value));
+
+                if( value->kind == runa_string && value->value.string != NULL ) data->value->value.string = strdup(value->value.string);
+                return;
             }
-            return;
         }
     }
 
     runa_push_local(runa, id, value);
+    return;
+
+assign_here:
+    {
+        runa_local *data = NULL;
+
+        for( int i = 0; i < runa->locals->length; i++ ) {
+            if( strcmp(runa->locals->values[i].identifier, id) == 0 ) {
+                data = &runa->locals->values[i];
+                break;
+            }
+        }
+
+        if( data->value != NULL ) {
+            runa_value_free(data->value, true);
+            free(data->value);
+        }
+
+        data->value = malloc(sizeof(runa_value));
+        memcpy(data->value, value, sizeof(runa_value));
+        if( value->kind == runa_string && value->value.string != NULL ) data->value->value.string = strdup(value->value.string);
+    }
+}
+
+void runa_push_result(Runa *runa, runa_value *value) {
+    ((call_state*)runa_stack_peek(call_stack))->result = value;
 }
 
 char *runa_value_to_string(runa_value *value) {

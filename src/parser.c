@@ -4,13 +4,13 @@
 #include "stack.h"
 #include "checkout.h"
 #include "expressions.h"
+#include "compression.h"
 #include "statements.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-int last_did = 0;
 typedef enum last_did_flags {
     FUNCTION_CALLED = (1 << 0),
 } last_did_flags;
@@ -35,8 +35,8 @@ bool expression(Runa *runa, char *token, runa_value *value) {
     if( isidentifier(token) ) {
 
         if( identifier(runa, token) ) {
-            if( last_did & FUNCTION_CALLED ) {
-                last_did &= ~FUNCTION_CALLED;
+            if( runa->last_did & FUNCTION_CALLED ) {
+                runa->last_did &= ~FUNCTION_CALLED;
                 runa_value *result = runa->result;
                 memcpy(value, result, sizeof(runa_value));
                 free(result);
@@ -175,6 +175,7 @@ bool identifier(Runa *runa, char *token) {
             args = realloc(args, sizeof(runa_value*) * (argc + 1));
             args[argc] = malloc(sizeof(runa_value));
             memcpy(args[argc], &value, sizeof(runa_value));
+            if( value.kind == runa_string ) args[argc]->value.string = strdup(value.value.string);
             argc++;
             char *next = runa_token(runa);
             if( next[0] == ')' ) {
@@ -194,10 +195,44 @@ bool identifier(Runa *runa, char *token) {
         if( function.arguments > argc )
         /* -> */ return runa_send_error(runa, RUNA_ARGUMENTS_COUNT_WRONG, token);
 
-        runa_stack_push(runa->arguments, args);
-        function.function(runa);
-        last_did |= FUNCTION_CALLED;
-        runa_stack_pop(runa->arguments);
+        if( function.function != NULL ) {
+            runa_stack_push(runa->arguments, args);
+            function.function(runa);
+            runa->last_did |= FUNCTION_CALLED;
+            runa_stack_pop(runa->arguments);
+        }
+        else {
+            int decompressed_size = 0;
+            char *code = runa_decompress(function.body, function.body_size, &decompressed_size);
+            runa_stack_push(runa->code_stack, code);
+            runa_locals *locals = (*runa).locals;
+            runa_stack_push(runa->stack_locals, locals);
+            free(runa->locals);
+            runa->locals = malloc(sizeof(runa_locals));
+            runa->locals->length = 0;
+            runa->locals->values = malloc(0);
+
+            for( int i = 0; i < argc; i++ ) runa_push_local(runa, function.params[i], args[i]);
+
+            runa_frame *frame = malloc(sizeof(runa_frame));
+            frame->flags = runa->flags;
+            frame->last_did = runa->last_did;
+            frame->mod = runa->mod;
+            frame->should_leave = runa->should_leave;
+            frame->state = runa->state;
+
+            runa_stack_push(runa->frames, frame);
+
+            runa->flags = 0;
+            runa->last_did = 0;
+            runa->mod = 0;
+            runa->should_leave = false;
+            runa->state = false;
+
+            runa_parse(runa);
+
+            runa->last_did |= FUNCTION_CALLED;
+        }
 
         int n = position;
         for( int i = 0; i < argc; i++ ) {
@@ -294,6 +329,20 @@ void runa_parse(Runa *runa) {
     runa->pushed = NULL;
     while(1) {
         if( runa->error ) break;
+        if( runa->should_leave ) {
+            runa->locals = runa_stack_pop(runa->stack_locals);
+            runa_frame *frame = runa_stack_pop(runa->frames);
+
+            runa->last_did = frame->last_did;
+            runa->flags = frame->flags;
+            runa->mod = frame->mod;
+            runa->state = frame->state;
+            runa->should_leave = frame->should_leave;
+
+            printf("chegou aqui\n");
+            break;
+        }
+
         char *token = runa_token(runa);
         bool is_eof = strcmp(RUNA_EOF, token) == 0;
         if( is_eof ) goto dump_token;

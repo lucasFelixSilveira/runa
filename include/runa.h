@@ -5,12 +5,18 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define RUNA_VALUE_KIND_FIELDS  \
-    X(runa_string, "string")    \
-    X(runa_integer, "integer")  \
-    X(runa_float, "float")      \
-    X(runa_table, "table")      \
-    X(runa_nil, "nil")
+#define FLAG_FUNCTION_CALLED (1 << 0)
+
+#define MOD_NOT (1 << 0)
+#define MOD_AND (1 << 1)
+#define MOD_OR  (1 << 2)
+
+#define RUNA_VALUE_KIND_FIELDS \
+    X(runa_string,  "string") \
+    X(runa_integer, "integer") \
+    X(runa_float,   "float") \
+    X(runa_table,   "table") \
+    X(runa_nil,     "nil")
 
 #define RUNA_ERROR_FIELDS \
     X(RUNA_OUT_OF_MEMORY,                             "%s is out of memory") \
@@ -23,7 +29,9 @@
     X(RUNA_ACCESS_INVALID_BECAUSE_IDENTIFIER,         "you can't use access opration in %s. Because it isn't a table.") \
     X(RUNA_TABLES_CANT_DO_NOTHING_EXCEPT_CONCATENATE, "the `%s` value is a Table, and tables can't do no one operation except concatenate.") \
     X(RUNA_TABLE_FIELD_INVALID,                       "The `%s` table field was not found.") \
-    X(RUNA_UNMATCHED_END,                             "unmatched end %s")
+    X(RUNA_UNMATCHED_END,                             "unmatched end %s") \
+    X(RUNA_INVALID_SYNTAX,                            "invalid syntax. `%s` was the reason.") \
+    X(RUNA_COMPRESSION_FAILED,                        "Runa'd try compress the body of the function to more memory efficiency. But the compression was failed. %s")
 
 #define X(kind, name) kind,
 typedef enum runa_value_kind { RUNA_VALUE_KIND_FIELDS } runa_value_kind;
@@ -32,6 +40,11 @@ typedef enum runa_value_kind { RUNA_VALUE_KIND_FIELDS } runa_value_kind;
 #define X(kind, name) kind,
 typedef enum runa_error { RUNA_ERROR_FIELDS } runa_error;
 #undef X
+
+typedef enum std_flags {
+    COMMON_STD  = 1 << 1,
+    MORGANA_STD = 1 << 2,
+} std_flags;
 
 typedef void (*runa_callback)(void *runa);
 
@@ -51,10 +64,25 @@ typedef struct runa_value {
     } value;
 } runa_value;
 
+typedef struct {
+    int flags;
+    runa_value *result;
+    int mod;
+    bool state;
+} call_state;
+
 typedef struct runa_function {
-    char *identifier;
+    char **params;
     int arguments;
+
+    char *identifier;
+
+    // builtin
     runa_callback function;
+
+    // user-defined
+    char *body;
+    int body_size;
 } runa_function;
 
 typedef struct runa_local {
@@ -67,6 +95,11 @@ typedef struct runa_locals {
     runa_local *values;
 } runa_locals;
 
+typedef struct runa_frame {
+    int last_did, flags, mod;
+    bool state, should_leave;
+} runa_frame;
+
 typedef struct Runa {
     FILE *file;
     char *pushed;
@@ -75,9 +108,14 @@ typedef struct Runa {
     int functions_length;
     runa_function *functions;
     runa_stack *stack_locals;
-    runa_locals locals;
+    runa_locals *locals;
     runa_value *result;
     runa_stack *if_stack;
+    runa_stack *code_stack;
+    runa_stack *frames;
+
+    int last_did, flags, mod;
+    bool state, should_leave;
 } Runa;
 
 void runa_start(Runa *runa);
@@ -93,20 +131,6 @@ void runa_assign_local(Runa *runa, char *id, runa_value *value);
 void runa_value_free(runa_value *value, bool real);
 
 void runa_use_std(Runa *runa, int flags);
-
-typedef enum std_flags {
-    COMMON_STD  = 1 << 1,
-    MORGANA_STD = 1 << 2,
-} std_flags;
-
-typedef enum runa_scope {
-    RUNA_SCOPE_GLOBAL,
-    RUNA_SCOPE_LOCAL,
-    RUNA_SCOPE_FUNCTION,
-    RUNA_SCOPE_ELSEIF,
-    RUNA_SCOPE_ELSE,
-    RUNA_SCOPE_IF,
-} runa_scope;
 
 bool runa_send_error(Runa *runa, runa_error error, char *what);
 bool runa_send_fatal_error(Runa *runa, runa_error error, char *what);
