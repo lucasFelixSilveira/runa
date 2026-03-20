@@ -205,38 +205,19 @@ bool identifier(Runa *runa, char *token) {
             int decompressed_size = 0;
             char *code = runa_decompress(function.body, function.body_size, &decompressed_size);
             runa_stack_push(runa->code_stack, code);
-            runa_locals *locals = (*runa).locals;
-            runa_stack_push(runa->stack_locals, locals);
-            free(runa->locals);
-            runa->locals = malloc(sizeof(runa_locals));
-            runa->locals->length = 0;
-            runa->locals->values = malloc(0);
+            runa_push_scope(runa);
+            runa_push_frame(runa);
 
             for( int i = 0; i < argc; i++ ) runa_push_local(runa, function.params[i], args[i]);
 
-            runa_frame *frame = malloc(sizeof(runa_frame));
-            frame->flags = runa->flags;
-            frame->last_did = runa->last_did;
-            frame->mod = runa->mod;
-            frame->should_leave = runa->should_leave;
-            frame->state = runa->state;
-
-            runa_stack_push(runa->frames, frame);
-
-            runa->flags = 0;
-            runa->last_did = 0;
-            runa->mod = 0;
-            runa->should_leave = false;
-            runa->state = false;
-
             runa_parse(runa);
+            runa_pop_scope(runa);
 
             runa->last_did |= FUNCTION_CALLED;
         }
 
         int n = position;
         for( int i = 0; i < argc; i++ ) {
-            if( args[i]->kind == runa_string && (o - n) >= 2 ) free(args[i]->value.string);
             free(args[i]);
         }
         free(args);
@@ -330,16 +311,7 @@ void runa_parse(Runa *runa) {
     while(1) {
         if( runa->error ) break;
         if( runa->should_leave ) {
-            runa->locals = runa_stack_pop(runa->stack_locals);
-            runa_frame *frame = runa_stack_pop(runa->frames);
-
-            runa->last_did = frame->last_did;
-            runa->flags = frame->flags;
-            runa->mod = frame->mod;
-            runa->state = frame->state;
-            runa->should_leave = frame->should_leave;
-
-            printf("chegou aqui\n");
+            runa_pop_frame(runa);
             break;
         }
 

@@ -19,10 +19,10 @@
 
 -- fibonacci(12);
 
-function test(x)
-    return "hello, " .. x
+local z = 0
+function test(ihatemylife)
+    return "hello, " .. ihatemylife
 end
 
-local y = "world";
-print(test(y))
-print(x)
+local y = "world"
+print(test(y) .. ihatemylife)

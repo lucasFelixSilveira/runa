@@ -141,4 +141,10 @@ char *runa_value_kind_str(runa_value_kind kind);
 
 runa_value *runa_access_table(runa_value *table, char *str);
 
+void runa_push_scope(Runa *runa);
+void runa_pop_scope(Runa *runa);
+
+void runa_push_frame(Runa *runa);
+void runa_pop_frame(Runa *runa);
+
 #endif

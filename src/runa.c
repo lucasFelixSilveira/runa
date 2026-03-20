@@ -10,6 +10,8 @@
 #include "std.h"
 #include "vector.h"
 
+void runa_value_free(runa_value *value, bool real);
+
 void printfln(char *format, ...) {
     va_list args;
     char *str = (char*)malloc(strlen(format) + 2);
@@ -73,6 +75,59 @@ void runa_free(Runa *runa) {
     free(runa);
 }
 
+void runa_push_frame(Runa *runa) {
+    runa_frame *frame = malloc(sizeof(runa_frame));
+    frame->flags = runa->flags;
+    frame->last_did = runa->last_did;
+    frame->mod = runa->mod;
+    frame->should_leave = runa->should_leave;
+    frame->state = runa->state;
+
+    runa_stack_push(runa->frames, frame);
+
+    runa->flags = 0;
+    runa->last_did = 0;
+    runa->mod = 0;
+    runa->should_leave = false;
+    runa->state = false;
+}
+
+void runa_pop_frame(Runa *runa) {
+    runa_frame *frame = runa_stack_pop(runa->frames);
+
+    runa->last_did = frame->last_did;
+    runa->flags = frame->flags;
+    runa->mod = frame->mod;
+    runa->state = frame->state;
+    runa->should_leave = frame->should_leave;
+}
+
+void runa_push_scope(Runa *runa) {
+    runa_locals *locals = malloc(sizeof(runa_locals));
+    locals->length = runa->locals->length;
+    locals->values = malloc(sizeof(runa_local) * locals->length);
+    memcpy(locals->values, runa->locals->values, sizeof(runa_local) * locals->length);
+
+    runa_stack_push(runa->stack_locals, locals);
+
+    free(runa->locals->values);
+    free(runa->locals);
+
+    runa->locals = malloc(sizeof(runa_locals));
+    runa->locals->length = 0;
+    runa->locals->values = malloc(0);
+}
+
+void runa_pop_scope(Runa *runa) {
+    for( int i = 0; i < runa->locals->length; i++ )
+    /* -> */ runa_value_free(runa->locals->values[i].value, true);
+
+    free(runa->locals->values);
+    free(runa->locals);
+
+    runa->locals = runa_stack_pop(runa->stack_locals);
+}
+
 void runa_loadfile(Runa *runa, char *filename) {
     runa->file = fopen(filename, "r+");
     runa_parse(runa);
@@ -103,7 +158,6 @@ bool runa_peek_local(Runa *runa, char *id, runa_value **value) {
     for( int i = 0; i < runa->locals->length; i++ ) {
         runa_local *data = &runa->locals->values[i];
         if( data->identifier && strcmp(data->identifier, id) == 0 ) {
-            if( data->value == NULL ) return false;
             *value = data->value;
             return true;
         }
@@ -114,7 +168,6 @@ bool runa_peek_local(Runa *runa, char *id, runa_value **value) {
         for( int i = 0; i < scope->length; i++ ) {
             runa_local *data = &scope->values[i];
             if( data->identifier && strcmp(data->identifier, id) == 0 ) {
-                if( data->value == NULL ) return false;
                 *value = data->value;
                 return true;
             }
@@ -173,7 +226,7 @@ void runa_value_free(runa_value *value, bool real) {
     }
 
     if( value->kind == runa_integer ) value->value.integer = 0;
-    if( value->kind == runa_integer ) value->value._float = 0.0;
+    if( value->kind == runa_float ) value->value._float = 0.0;
 }
 
 void runa_assign_local(Runa *runa, char *id, runa_value *value) {
