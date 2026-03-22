@@ -1,13 +1,8 @@
-if [[ $1 == "x86_64" ]]; then
-    ./build.sh x86_64
-    echo "building test"
-    gcc tests/m.c -llzma -lm -I./include final/x86_64.a -o final/test
+echo "compiling core (Rust)"
+cargo build --release
 
-elif [[ $1 == "aarch64" ]]; then
-    ./build.sh aarch64
-    echo "building test"
-    clang tests/m.c -lm -I./include final/aarch64.a -o final/test
-fi
+echo "compiling test"
+gcc tests/main.c -llzma -lm -I./include target/release/libruna_interpreter.a -o final/test
 
 echo "running test"
 ./final/test

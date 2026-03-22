@@ -1,30 +1,14 @@
 [
   {
-    "file": "runa.c",
+    "file": "tests/main.c",
     "arguments": [
       "gcc",
-      "-m64",
-      "-c",
-      "runa.c",
-      "-I../include",
+      "tests/main.c",
+      "-I./include",
       "-o",
-      "../bin/runa.o"
+      "final/test"
     ],
-    "directory": "/home/dev_lucasfs/Desktop/carla/runa/src",
-    "output": "../bin/runa.o"
-  },
-  {
-    "file": "vector.c",
-    "arguments": [
-      "gcc",
-      "-m64",
-      "-c",
-      "vector.c",
-      "-I../include",
-      "-o",
-      "../bin/vector.o"
-    ],
-    "directory": "/home/dev_lucasfs/Desktop/carla/runa/src",
-    "output": "../bin/vector.o"
+    "directory": "/home/dev_lucasfs/Desktop/carla/runa",
+    "output": "final/test"
   }
 ]

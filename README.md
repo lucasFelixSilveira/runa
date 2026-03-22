@@ -34,10 +34,26 @@ print("Hello world! My name is " .. dev["name"] .. ", i am " .. dev["age"] .. ' 
 #include <stdlib.h>
 
 int main() {
-    Runa *runa = malloc(sizeof(Runa));
-    runa_start(runa);
+    Runa *runa = runa_start(runa);
     runa_loadfile(runa, "main.lua");
     runa_free(runa);
+}
+```
+
+- `How to call C funcions in Runa (lua)` - You should use `runa_push_function` to push your function in Runa symbol table.
+```c
+void print(Runa *runa) {
+    RunaValueFFI val = runa_peek_arg(runa, 0);
+    printf("print from C: %s\n", val.data.string);
+    runa_value_free(val);
+}
+
+int main() {
+    Runa *runa = runa_start();
+    runa_push_function(runa, "print", (runa_callback)print, 1);
+    runa_loadfile(runa, "main.lua");
+    runa_free(runa);
+    return 0;
 }
 ```
 
