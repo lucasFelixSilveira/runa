@@ -1,4 +1,3 @@
-
 use std::fs::File;
 use std::io::BufReader;
 use std::process::exit;
@@ -8,8 +7,19 @@ pub mod expression;
 
 pub type RunaCallback = fn(*mut Runa);
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum RunaValue {
+    String(String),
+    Integer(usize),
+    Float(f64),
+    Boolean(bool),
+
+    #[default]
+    Nil,
+}
+
 #[allow(unpredictable_function_pointer_comparisons)]
-#[derive(Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Function {
     pub name: String,
     pub std: bool,
@@ -19,26 +29,24 @@ pub struct Function {
     pub callback: Option<RunaCallback>
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Variable {
+    pub name: String,
+    pub value: RunaValue
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Local {
-    Function(Function)
+    Function(Function),
+    Variable(Variable),
 }
 
 pub type Locals = Vec<Local>;
 
-#[derive(Debug, PartialEq)]
-pub enum RunaValue {
-    String(String),
-    Integer(usize),
-    Float(f64),
-    Boolean(bool),
-    Nil
-}
-
 #[derive(Debug, Default)]
 pub struct Runa {
     pub error: bool,
-    pub pushed: Option<lexer::Token>,
+    pub pushed: Vec<lexer::Token>,
     pub code_stack: Vec<String>,
     pub filename: Option<String>,
     pub file: Option<BufReader<File>>,
@@ -68,13 +76,13 @@ pub fn runa_peek<'a>(runa: &'a Runa, name: &String) -> Option<&'a Local> {
     for local in locals {
         match local {
             Local::Function(func) if func.name == *name => return Some(&local),
-            _ => todo!()
+            Local::Variable(var) if var.name == *name => return Some(&local),
+            _ => continue
         }
     }
     None
 }
 
-#[allow(irrefutable_let_patterns)]
 pub fn runa_peek_function<'a>(runa: &'a Runa, name: &String) -> Option<&'a Function> {
     let local = runa_peek(runa, name);
     if local.is_none() { runa_spawn_fatal_error(["you tried to call `", name.as_str(), "` but it's unknown"].concat()); }
@@ -87,12 +95,45 @@ pub fn runa_peek_function<'a>(runa: &'a Runa, name: &String) -> Option<&'a Funct
     None
 }
 
+#[allow(unused)]
+pub fn runa_peek_variable<'a>(runa: &'a Runa, name: &String) -> Option<&'a Variable> {
+    let local = runa_peek(runa, name);
+    if local.is_none() { runa_spawn_fatal_error(["you tried acess `", name.as_str(), "` but it's unknown"].concat()); }
+
+    if let Local::Variable(var) = local? {
+        return Some(&var);
+    }
+
+    runa_spawn_fatal_error([name.as_str(), " isn't a variable"].concat());
+    None
+}
+
 pub fn runa_push_local(runa: &mut Runa, local: Local) {
     if runa.stack.len() <= 0 {
         runa.stack.push(Vec::new());
     }
     let locals = runa.stack.last_mut().unwrap();
     locals.push(local);
+}
+
+#[allow(unreachable_patterns)]
+pub fn runa_assign_local(runa: &mut Runa, name: String, value: RunaValue) {
+    if let Some(locals) = runa.stack.last_mut() {
+        if let Some(local) = locals.iter_mut().find(|l| {
+            match l {
+                Local::Variable(var) => var.name == name,
+                Local::Function(func) => func.name == name,
+                _ => false,
+            }
+        }) {
+            match local {
+                Local::Variable(var) => var.value = value,
+                _ => {}
+            }
+            return;
+        }
+    }
+    runa_push_local(runa, Local::Variable(Variable { name, value }));
 }
 
 pub fn parse(runa: &mut Runa) {

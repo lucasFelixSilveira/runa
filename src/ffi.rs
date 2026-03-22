@@ -29,7 +29,7 @@ impl crate::core::RunaValue {
         match self {
             crate::core::RunaValue::String(s) => {
                 let cstr = CString::new(s.clone()).unwrap();
-                let ptr = cstr.into_raw(); // ⚠️ transfere ownership!
+                let ptr = cstr.into_raw();
 
                 RunaValueFFI {
                     tag: RunaValueTag::String,
@@ -54,7 +54,7 @@ impl crate::core::RunaValue {
 
             crate::core::RunaValue::Nil => RunaValueFFI {
                 tag: RunaValueTag::Nil,
-                data: RunaValueData { integer: 0 }, // filler
+                data: RunaValueData { integer: 0 }
             },
         }
     }

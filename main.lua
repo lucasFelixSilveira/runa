@@ -1,1 +1,2 @@
-print("Hello, world! " .. "/" .. " i love my femboy")
+local x = "Hello, world"
+print(x)

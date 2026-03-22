@@ -30,7 +30,9 @@ static mut CODE_ID: i32 = 0;
 static mut POS: [usize; 64] = [0; 64];
 
 pub fn back(runa: &mut Runa, token: Token) {
-    runa.pushed = Some(token);
+    if let Token::Value(data) = token {
+        runa.file.as_mut().unwrap().seek_relative(-(data.len() as i64)).ok();
+    }
 }
 
 pub fn next(runa: &mut Runa) -> Token {
@@ -40,7 +42,7 @@ pub fn next(runa: &mut Runa) -> Token {
         POSITION += 1;
     }
 
-    if let Some(token) = runa.pushed.take() {
+    if let Some(token) = runa.pushed.pop() {
         return token;
     }
 
