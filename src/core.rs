@@ -53,6 +53,7 @@ pub struct Runa {
     pub stack: Vec<Locals>,
     pub args: Vec<Vec<RunaValue>>,
     pub should_leave: bool,
+    pub return_value: Option<RunaValue>,
 }
 
 pub fn runa_spawn_fatal_error(message: String) {

@@ -1,7 +1,7 @@
 mod core;
 mod ffi;
 use core::*;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::{ffi::c_void, fs::File, io::BufReader};
 use std::os::raw::c_char;
 
@@ -76,6 +76,24 @@ fn runa_peek_arg(runa, index: i32) -> ffi::RunaValueFFI {
     };
 
     value.to_ffi()
+});
+
+runa_api_function!(
+fn runa_push_result(runa, value: ffi::RunaValueFFI) {
+    unsafe {
+        runa.return_value = Some(
+            match value.tag {
+                ffi::RunaValueTag::String => {
+                    let c_str = CStr::from_ptr(value.data.string);
+                    RunaValue::String(c_str.to_string_lossy().into_owned())
+                }
+                ffi::RunaValueTag::Integer => RunaValue::Integer(value.data.integer as usize),
+                ffi::RunaValueTag::Float   => RunaValue::Float(value.data.float),
+                ffi::RunaValueTag::Boolean => RunaValue::Boolean(value.data.boolean),
+                _ => RunaValue::Nil,
+            }
+        );
+    }
 });
 
 #[no_mangle]
