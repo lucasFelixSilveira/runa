@@ -3,7 +3,9 @@
 
 void print(Runa *runa) {
     RunaValueFFI val = runa_peek_arg(runa, 0);
-    printf("print: %s\n", val.data.string);
+    char *str = runa_value_to_string(val);
+    printf("print: %s\n", str);
+    runa_optional(RUNA_FREE_STRING_BY_VALUE, runa_str_free, str, val);
     runa_value_free(val);
 }
 

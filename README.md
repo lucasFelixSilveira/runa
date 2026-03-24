@@ -30,9 +30,6 @@ print("Hello world! My name is " .. dev["name"] .. ", i am " .. dev["age"] .. ' 
 
 - `Get started` - You can run a lua file using Runa like this 
 ```c
-#include "runa.h"
-#include <stdlib.h>
-
 int main() {
     Runa *runa = runa_start(runa);
     runa_loadfile(runa, "main.lua");
@@ -44,7 +41,9 @@ int main() {
 ```c
 void print(Runa *runa) {
     RunaValueFFI val = runa_peek_arg(runa, 0);
-    printf("print from C: %s\n", val.data.string);
+    char *str = runa_value_to_string(val);
+    printf("print from C: %s\n", str);
+    runa_optional(RUNA_FREE_STRING_BY_VALUE, runa_str_free, str, val);
     runa_value_free(val);
 }
 
@@ -59,9 +58,6 @@ int main() {
 
 - `How to use std` - You should use `runa_use_std` function to allocate the std functions into the Runa state.
 ```c
-#include "runa.h"
-#include <stdlib.h>
-
 int main() {
     Runa *runa = malloc(sizeof(Runa));
     runa_start(runa);

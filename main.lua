@@ -1,2 +1,2 @@
-local x = "Hello, world"
+local x, y = 4*4
 print(x)

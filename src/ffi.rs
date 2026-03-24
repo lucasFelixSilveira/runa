@@ -2,6 +2,7 @@ use std::ffi::CString;
 use std::os::raw::{c_char};
 
 #[repr(C)]
+#[derive(Debug)]
 pub enum RunaValueTag {
     String,
     Integer,

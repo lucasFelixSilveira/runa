@@ -91,3 +91,27 @@ pub extern "C" fn runa_value_free(val: ffi::RunaValueFFI) {
         }
     }
 }
+
+
+#[no_mangle]
+#[allow(unreachable_patterns)]
+pub extern "C" fn runa_value_to_string(val: ffi::RunaValueFFI) -> *mut c_char {
+    unsafe {
+        let c_string = match val.tag {
+            ffi::RunaValueTag::String  => return val.data.string as *mut c_char,
+            ffi::RunaValueTag::Integer => CString::new(val.data.integer.to_string()).unwrap(),
+            ffi::RunaValueTag::Float   => CString::new(val.data.float.to_string()).unwrap(),
+            ffi::RunaValueTag::Boolean => CString::new(val.data.boolean.to_string()).unwrap(),
+            ffi::RunaValueTag::Nil     => CString::new("nil").unwrap(),
+            _ => unreachable!(),
+        };
+
+        c_string.into_raw()
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn runa_str_free(ptr: *mut c_char) {
+    if ptr.is_null() { return; }
+    unsafe { let _ = CString::from_raw(ptr); }
+}

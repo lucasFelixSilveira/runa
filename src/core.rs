@@ -60,7 +60,7 @@ pub fn runa_spawn_fatal_error(message: String) {
     exit(1);
 }
 
-pub fn isidentifier(token: &String) -> bool {
+pub fn isidentifier(token: &str) -> bool {
     if token.is_empty() { return false; }
     let first = token.chars().next().unwrap();
     if !first.is_alphabetic() && first != '_' { return false; }
@@ -68,6 +68,21 @@ pub fn isidentifier(token: &String) -> bool {
         if !c.is_alphanumeric() && c != '_' { return false; }
     }
     true
+}
+
+fn isinteger(s: &str) -> bool {
+    s.parse::<i64>().is_ok() && !s.contains('.')
+}
+fn isfloat(s: &str) -> bool {
+    s.parse::<f64>().is_ok() && s.contains('.')
+}
+
+pub fn isnumeric(token: &str) -> bool {
+    isinteger(token) || isfloat(token)
+}
+
+pub fn isstring(token: &str) -> bool {
+    ( token.starts_with('"') && token.ends_with('"') ) || ( token.starts_with('\'') && token.ends_with('\'') )
 }
 
 pub fn runa_peek<'a>(runa: &'a Runa, name: &String) -> Option<&'a Local> {
@@ -114,6 +129,16 @@ pub fn runa_push_local(runa: &mut Runa, local: Local) {
     }
     let locals = runa.stack.last_mut().unwrap();
     locals.push(local);
+}
+
+pub fn runa_value_to_string(value: &RunaValue) -> String {
+    match value {
+        RunaValue::String(s) => s.clone(),
+        RunaValue::Integer(i) => i.to_string(),
+        RunaValue::Float(f) => f.to_string(),
+        RunaValue::Boolean(b) => b.to_string(),
+        RunaValue::Nil => "nil".to_string(),
+    }
 }
 
 #[allow(unreachable_patterns)]

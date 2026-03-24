@@ -31,11 +31,25 @@ typedef struct {
 typedef struct Runa Runa;
 typedef void (*runa_callback)(Runa *);
 
+enum {
+    RUNA_FREE_STRING_BY_VALUE
+};
+
+#define runa_optional(funcid, cb, x, y)               \
+switch (funcid) {                                     \
+    case RUNA_FREE_STRING_BY_VALUE: {                 \
+        if( ((RunaValueFFI) y).tag != runa_string ) { \
+            cb((char*)x);                             \
+        }                                             \
+    } break;                                          \
+}
+
 Runa *runa_start();
 void runa_loadfile(Runa *runa, const char *filename);
 void runa_free(Runa *runa);
 void runa_push_function(Runa *runa, const char *name, runa_callback callback, int argc);
 RunaValueFFI runa_peek_arg(Runa *runa, int index);
 void runa_value_free(RunaValueFFI value);
-
+char* runa_value_to_string(RunaValueFFI value);
+void runa_str_free(char *str);
 #endif

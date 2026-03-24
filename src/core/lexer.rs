@@ -23,7 +23,7 @@ impl Token {
     }
 }
 
-use crate::core::Runa;
+use crate::core::{Runa, isinteger};
 
 static mut POSITION: i64 = 0;
 static mut CODE_ID: i32 = 0;
@@ -129,7 +129,7 @@ pub fn next(runa: &mut Runa) -> Token {
         }
 
         if !c.is_alphanumeric() && c != '_' {
-            if !buffer.is_empty() && is_integer(&buffer) && c == '.' {
+            if !buffer.is_empty() && isinteger(&buffer) && c == '.' {
                 buffer.push(c);
                 continue;
             }
@@ -186,8 +186,4 @@ pub fn next(runa: &mut Runa) -> Token {
     }
 
     Token::Value(String::new())
-}
-
-fn is_integer(s: &str) -> bool {
-    s.chars().all(|c| c.is_ascii_digit())
 }
