@@ -118,14 +118,11 @@ fn local(runa: &mut Runa, token: &String) -> bool {
         { runa_spawn_fatal_error(format!("expected expression after =, got {}", tok.as_str().unwrap())); }
 
         counter += 1;
-        if counter <= identifiers.len() {
-            runa_assign_local(runa, identifiers[counter - 1].clone(), value);
-        }
+        if counter <= identifiers.len()
+        { runa_assign_local(runa, identifiers[counter - 1].clone(), value); }
 
         let sep = lexer::next(runa);
-        if sep.is_eof() {
-            break;
-        }
+        if sep.is_eof() { break; }
         if let Token::Value(s) = &sep {
             if s != "," {
                 lexer::back(runa, sep);

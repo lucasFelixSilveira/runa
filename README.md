@@ -1,23 +1,65 @@
 <img align="right" src="./assets/runa.png" alt="Runa Logo" width="120px" height="120px">
 <br><br>
 
-# 🌙 RUNA Lua interpreter
+# 🌙 RUNA — Minimal Lua Runtime for Native Systems
 
-RUNA is an extremely compact library that interprets Lua 5.x (with an optimized subset) and serves as a hardcore glue between your C, C++, or Rust code and Lua scripts.
+RUNA is a compact, low-level Lua 5.x interpreter (optimized subset) designed to act as a zero-overhead bridge between native code (C/C++/Rust) and embedded scripting.
 
-Built exclusively with the [Morgana](https://github.com/lucasFelixSilveira/morgana) ecosystem in mind: extensors, yet can be used in any system capable of importing C headers.
+It is built primarily for the [Morgana](https://github.com/lucasFelixSilveira/morgana) ecosystem, but remains fully usable in any environment capable of interfacing with a C ABI.
 
-# Why use Runa instead of PUC-LUA?
+####
 
-Runa is extremely compact, containing only the functions necessary for Morgana's operation. This means: Less RAM footprint, easier integration into your systems.
+# Why RUNA instead of PUC-Lua?
+RUNA is not a full Lua distribution — it is a purpose-built runtime engineered for tight native integration.
 
-Native intercommunication without hacky workarounds — RUNA doesn't rely on FFI (like LuaJIT FFI or libffi) for host bridging. No dynamic calls, automatic marshalling, or foreign call overhead: everything happens in the same address space, with direct bindings via custom C API, sharing the same virtual memory without unnecessary copies.
+## Minimal footprint
+- Only the strict subset required for real embedding scenarios
+- Reduced memory footprint
+- Faster integration, fewer moving parts
 
-RUNA isn't a luxury. It's the bare minimum we deserve to avoid being held hostage by non-portable solutions.
+## Native intercommunication (no dynamic FFI)
 
-# About the syntax
+RUNA deliberately avoids **dynamic FFI layers** and any form of runtime foreign call abstraction.
+> No libffi. No LuaJIT-style FFI. No runtime call resolution.
 
-Runa uses the same syntax of PUC-LUA, but you need use perenthesis in function calls, and common native libraries of lua don't works here. Runa has her own std package, with less functions than PUC-LUA. 
+Instead, it exposes a **static, ABI-stable C interface** built on direct symbol binding and function pointer dispatch:
+- Direct function pointer calls (no indirection layers)
+- No trampolines or runtime-generated stubs
+- No reflective type inspection
+- No dynamic dispatch or call adaptation
+
+All execution occurs **within the same address space**, under a unified memory model:
+- Zero context switching
+- Predictable, constant-time call boundaries
+- Cache-friendly execution paths
+- Controlled boundary, leak-free by design
+
+## Crossing the C boundary is explicit, minimal, and strictly controlled:
+- Values are converted to a lightweight FFI representation (RunaValueFFI)
+- Conversions are deterministic and low-cost
+- Temporary allocations may occur, but are short-lived and scoped to the call boundary
+
+Ownership is never ambiguous:
+- Any allocation created for C is either explicitly freed, or
+- Reclaimed into Rust-managed memory immediately after use
+
+There is no shared ownership across the boundary, and no long-lived foreign allocations.
+> If a value crosses the boundary, its lifetime is fully resolved — it is either freed or owned by Rust.
+This guarantees:
+- **Zero memory leaks by design**
+- No hidden heap growth
+- No GC interference or unmanaged state
+- Fully predictable allocation and deallocation behavior
+
+
+# Syntax
+
+RUNA follows Lua syntax (PUC-Lua style) with a reduced standard library.
+
+## Differences:
+- Function calls require parentheses
+- Standard Lua libraries are not included
+- Custom minimal `std` is provided
 
 ```lua
 local dev = { name = "Lucas", age = 16, bio = "I am just a developer" }
@@ -26,49 +68,66 @@ print("Hello world! My name is " .. dev["name"] .. ", i am " .. dev["age"] .. ' 
 ```
 
 
-# How to use
+## Getting Started
+Running a script
 
-- `Get started` - You can run a lua file using Runa like this 
 ```c
 int main() {
-    Runa *runa = runa_start(runa);
+    Runa *runa = runa_start();
     runa_loadfile(runa, "main.lua");
     runa_free(runa);
 }
 ```
 
-- `How to call C funcions in Runa (lua)` - You should use `runa_push_function` to push your function in Runa symbol table.
+## Exposing native functions
+Bind native functions directly into the runtime:
+
 ```c
 void print(Runa *runa) {
     RunaValueFFI val = runa_peek_arg(runa, 0);
     char *str = runa_value_to_string(val);
+
     printf("print from C: %s\n", str);
+
     runa_optional(RUNA_FREE_STRING_BY_VALUE, runa_str_free, str, val);
     runa_value_free(val);
 }
 
 int main() {
     Runa *runa = runa_start();
+
     runa_push_function(runa, "print", (runa_callback)print, 1);
+
     runa_loadfile(runa, "main.lua");
     runa_free(runa);
+
     return 0;
 }
 ```
 
-- `How to use std` - You should use `runa_use_std` function to allocate the std functions into the Runa state.
+## Using the standard library
 ```c
 int main() {
-    Runa *runa = malloc(sizeof(Runa));
-    runa_start(runa);
-    runa_loadfile(runa, "main.lua");
+    Runa *runa = runa_start();
+
     int flags = COMMON_STD | MORGANA_STD;
     runa_use_std(runa, flags);
+
+    runa_loadfile(runa, "main.lua");
     runa_free(runa);
 }
 ```
+
+### Available flags
+- `COMMON_STD` → basic utilities (print, log10, etc.)
+- `MORGANA_STD` → extended utilities for Morgana ecosystem
 
 What is the `COMMON_STD` and `MORGANA_STD` flags?
 
 - `COMMON_STD` - Includes common std functions. As `print` and `log10`.
 - `MORGANA_STD` - Includes util std functions to Morgana. As `mlog2` and `error`.
+
+
+##
+
+RUNA is the bare minimum required to embed Lua without sacrificing control.

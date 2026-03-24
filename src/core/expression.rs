@@ -2,6 +2,7 @@ use crate::core::{parser::function, *};
 
 mod string;
 mod numeric;
+mod table;
 
 pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
     if isstring(token)
@@ -13,7 +14,7 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
     if isidentifier(token) {
         let value = runa_peek(runa, token);
         if value.is_none()
-        { return (false, RunaValue::Nil); }
+        { return ( false, RunaValue::Nil ); }
 
         let local = value.unwrap();
         if let Local::Variable(var) = local
@@ -23,7 +24,7 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
             let paren = lexer::next(runa);
             if paren.as_str().unwrap() != "(" { return ( false, RunaValue::Nil ); }
             _ = function(runa, token);
-            let data = runa.return_value.clone().unwrap();
+            let data = runa.return_value.clone().unwrap_or_else(|| RunaValue::Nil);
             runa.return_value = None;
             return ( true, data );
         }
