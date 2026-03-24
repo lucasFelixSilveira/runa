@@ -122,12 +122,6 @@ int main() {
 - `COMMON_STD` → basic utilities (print, log10, etc.)
 - `MORGANA_STD` → extended utilities for Morgana ecosystem
 
-What is the `COMMON_STD` and `MORGANA_STD` flags?
-
-- `COMMON_STD` - Includes common std functions. As `print` and `log10`.
-- `MORGANA_STD` - Includes util std functions to Morgana. As `mlog2` and `error`.
-
-
 ##
 
 RUNA is the bare minimum required to embed Lua without sacrificing control.
