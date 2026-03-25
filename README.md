@@ -20,7 +20,6 @@ RUNA is not a full Lua distribution — it is a purpose-built runtime engineered
 ## Native intercommunication (no dynamic FFI)
 
 RUNA deliberately avoids **dynamic FFI layers** and any form of runtime foreign call abstraction.
-> No libffi. No LuaJIT-style FFI. No runtime call resolution.
 
 Instead, it exposes a **static, ABI-stable C interface** built on direct symbol binding and function pointer dispatch:
 - Direct function pointer calls (no indirection layers)
