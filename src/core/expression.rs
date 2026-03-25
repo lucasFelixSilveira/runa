@@ -5,6 +5,9 @@ mod numeric;
 mod table;
 
 pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
+    if token == "{"
+    { return table::runa_expression_tables(runa, token); }
+
     if isstring(token)
     { return string::runa_expression_string(runa, token); }
 
@@ -17,8 +20,32 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
         { return ( false, RunaValue::Nil ); }
 
         let local = value.unwrap();
-        if let Local::Variable(var) = local
-        { return ( true, var.value.clone() ); }
+        if let Local::Variable(var) = local {
+            if let RunaValue::Table(table) = &var.value {
+                let operator = lexer::next(runa);
+                if operator.as_str().unwrap() == "." {
+                    todo!();
+                }
+
+                if operator.as_str().unwrap() == "[" {
+                    let index = lexer::next(runa);
+                    let (success, value) = runa_expression(runa, index.as_str().unwrap());
+                    if !success { return ( false, RunaValue::Nil ); }
+                    let close = lexer::next(runa);
+                    if close.as_str().unwrap() != "]" { return ( false, RunaValue::Nil ); }
+                    if let RunaValue::Integer(index) = value {
+                        if index >= table.len() { return ( false, RunaValue::Nil ); }
+                        let val = table.iter().filter(|x| x.0 == index.to_string()).collect::<Vec<_>>();
+                        return ( true, val[0].1.borrow().clone() );
+                    }
+                    return ( false, RunaValue::Nil );
+                }
+
+                return ( false, RunaValue::Nil );
+            }
+
+            return ( true, var.value.clone() );
+        }
 
         if let Local::Function(_) = local {
             let paren = lexer::next(runa);

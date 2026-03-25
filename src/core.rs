@@ -1,5 +1,7 @@
+use std::cell::RefCell;
 use std::fs::File;
 use std::io::BufReader;
+use std::rc::Rc;
 use std::process::exit;
 pub mod lexer;
 pub mod parser;
@@ -7,12 +9,14 @@ pub mod expression;
 
 pub type RunaCallback = fn(*mut Runa);
 
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum RunaValue {
     String(String),
     Integer(usize),
     Float(f64),
     Boolean(bool),
+    Table(Vec<(String, Rc<RefCell<RunaValue>>)>),
 
     #[default]
     Nil,
@@ -35,7 +39,7 @@ pub struct Variable {
     pub value: RunaValue
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Local {
     Function(Function),
     Variable(Variable),
@@ -86,25 +90,27 @@ pub fn isstring(token: &str) -> bool {
     ( token.starts_with('"') && token.ends_with('"') ) || ( token.starts_with('\'') && token.ends_with('\'') )
 }
 
-pub fn runa_peek<'a>(runa: &'a Runa, name: &String) -> Option<&'a Local> {
-    if runa.stack.len() <= 0 { return None; }
+pub fn runa_peek(runa: &Runa, name: &String) -> Option<Local> {
+    if runa.stack.is_empty() { return None; }
+
     let locals = runa.stack.last().unwrap();
     for local in locals {
         match local {
-            Local::Function(func) if func.name == *name => return Some(&local),
-            Local::Variable(var) if var.name == *name => return Some(&local),
+            Local::Function(func) if func.name == *name => return Some(local.clone()),
+            Local::Variable(var) if var.name == *name => return Some(local.clone()),
             _ => continue
         }
     }
+
     None
 }
 
-pub fn runa_peek_function<'a>(runa: &'a Runa, name: &String) -> Option<&'a Function> {
+pub fn runa_peek_function(runa: &Runa, name: &String) -> Option<Function> {
     let local = runa_peek(runa, name);
     if local.is_none() { runa_spawn_fatal_error(["you tried to call `", name.as_str(), "` but it's unknown"].concat()); }
 
     if let Local::Function(func) = local? {
-        return Some(&func);
+        return Some(func);
     }
 
     runa_spawn_fatal_error([name.as_str(), " isn't a function"].concat());
@@ -112,12 +118,12 @@ pub fn runa_peek_function<'a>(runa: &'a Runa, name: &String) -> Option<&'a Funct
 }
 
 #[allow(unused)]
-pub fn runa_peek_variable<'a>(runa: &'a Runa, name: &String) -> Option<&'a Variable> {
+pub fn runa_peek_variable(runa: &Runa, name: &String) -> Option<Variable> {
     let local = runa_peek(runa, name);
     if local.is_none() { runa_spawn_fatal_error(["you tried acess `", name.as_str(), "` but it's unknown"].concat()); }
 
     if let Local::Variable(var) = local? {
-        return Some(&var);
+        return Some(var);
     }
 
     runa_spawn_fatal_error([name.as_str(), " isn't a variable"].concat());
@@ -139,6 +145,7 @@ pub fn runa_value_to_string(value: &RunaValue) -> String {
         RunaValue::Float(f) => f.to_string(),
         RunaValue::Boolean(b) => b.to_string(),
         RunaValue::Nil => "nil".to_string(),
+        RunaValue::Table(_) => "table".to_string()
     }
 }
 

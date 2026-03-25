@@ -57,6 +57,11 @@ impl crate::core::RunaValue {
                 tag: RunaValueTag::Nil,
                 data: RunaValueData { integer: 0 }
             },
+
+            crate::core::RunaValue::Table(_) => RunaValueFFI {
+                tag: RunaValueTag::Nil,
+                data: RunaValueData { integer: 0 }
+            },
         }
     }
 }

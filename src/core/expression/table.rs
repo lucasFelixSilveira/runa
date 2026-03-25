@@ -1,27 +1,60 @@
 use crate::core::{expression::runa_expression, *};
 
-pub fn runa_expression_tables(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
+pub fn runa_expression_tables(runa: &mut Runa, _: &String) -> (bool, RunaValue) {
     let next = lexer::next(runa);
-    if next.is_eof() {
-        return ( true, RunaValue::String(token[1..token.len()-1].to_string()) );
-    }
+    if next.is_eof()
+    { return ( false, RunaValue::Nil ); }
 
-    let mut buffer = token[1..token.len()-1].to_string();
-    let mut operator = next.clone();
+    if next.as_str().unwrap() == "}"
+    { return ( true, RunaValue::Table(Vec::new()) ); }
+
+    lexer::back(runa, next);
+
+    let mut i = 1;
+    let mut table = Vec::new();
     loop {
-        if operator.as_str().unwrap() != ".." {
-            lexer::back(runa, operator);
-            return ( true, RunaValue::String(buffer) );
+        let next  = lexer::next(runa);
+        if next.is_eof() { return ( false, RunaValue::Nil ); }
+        if next.as_str().unwrap() == "}" {
+            lexer::back(runa, next);
+            return ( true, RunaValue::Table(table) );
         }
 
-        let rhs = lexer::next(runa);
-        if rhs.is_eof()
-        { runa_spawn_fatal_error(format!("Unexpected end of input after '..' in string literal: {}", buffer)); }
+        let after = lexer::next(runa);
+        if after.is_eof() { return ( false, RunaValue::Nil ); }
 
-        let text = rhs.as_str().unwrap();
-        let (_, data) = runa_expression(runa, &text.into());
-        buffer.push_str(runa_value_to_string(&data).as_str());
+        if after.as_str().unwrap() == "=" {
+            let key = next.as_str().unwrap().to_string();
+            let resolve = lexer::next(runa);
+            if resolve.is_eof() { return ( false, RunaValue::Nil ); }
 
-        operator = lexer::next(runa).clone();
+            let (success, value) = runa_expression(runa, resolve.as_str().unwrap());
+            if !success { return ( false, RunaValue::Nil ); }
+            let rc = Rc::new(RefCell::new(value));
+            table.push((key, rc));
+
+            let comma = lexer::next(runa);
+            if comma.is_eof() { return ( false, RunaValue::Nil ); }
+            if comma.as_str().unwrap() != "," { return ( false, RunaValue::Nil ); }
+            continue;
+        }
+
+        lexer::back(runa, after);
+
+        let (success, value) = runa_expression(runa, next.as_str().unwrap());
+        if !success { return ( false, RunaValue::Nil ); }
+
+        let after = lexer::next(runa);
+
+        let rc = Rc::new(RefCell::new(value));
+        table.push((i.to_string(), rc));
+        i += 1;
+
+        if after.is_eof() { return ( false, RunaValue::Nil ); }
+        if after.as_str().unwrap() == "," { continue; }
+        if after.as_str().unwrap() == "}" { break; }
+        return ( false, RunaValue::Nil );
     }
+
+    return ( true, RunaValue::Table(table) );
 }

@@ -7,7 +7,7 @@ void mlog2(Runa *runa) {
     if( val.tag != runa_integer ) return;
     runa_push_result(runa, (RunaValueFFI) {
         .tag = runa_integer,
-        .data.integer = log2(val.data.integer) - 2
+        .data.integer = log2(val.data.integer * 8) - 2
     });
 }
 
