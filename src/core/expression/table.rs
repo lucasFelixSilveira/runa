@@ -6,10 +6,12 @@ pub fn runa_expression_tables(runa: &mut Runa, _: &String) -> (bool, RunaValue) 
 
     loop {
         let key_token = lexer::next(runa);
-        if key_token.is_eof() { return (false, RunaValue::Nil); }
-        if let Some("}") = key_token.as_str_ref() { return (true, RunaValue::Table(table)); }
+        if key_token.is_eof() { return ( false, RunaValue::Nil ); }
+
+        if let Some("}") = key_token.as_str_ref() { return ( true, RunaValue::Table(table) ); }
 
         let after = lexer::next(runa);
+
         if let Some("=") = after.as_str_ref() {
             let key = match key_token.as_str() {
                 Some(k) => k.clone(),
@@ -23,23 +25,32 @@ pub fn runa_expression_tables(runa: &mut Runa, _: &String) -> (bool, RunaValue) 
             table.push((key, Rc::new(RefCell::new(value))));
 
             let sep = lexer::next(runa);
-            if let Some(",") = sep.as_str_ref() { continue; }
-            if let Some("}") = sep.as_str_ref() { return (true, RunaValue::Table(table)); }
-            return (false, RunaValue::Nil);
+            match sep.as_str_ref() {
+                Some(",") => continue,
+                Some("}") => return ( true, RunaValue::Table(table) ),
+                _ => {
+                    lexer::back(runa, sep);
+                    return ( true, RunaValue::Table(table) );
+                }
+            }
         }
-        else {
-            lexer::back(runa, after);
 
-            let (success, value) = runa_expression(runa, key_token.as_str().unwrap());
-            if !success { return (false, RunaValue::Nil); }
+        lexer::back(runa, after);
 
-            table.push((i.to_string(), Rc::new(RefCell::new(value))));
-            i += 1;
+        let (success, value) = runa_expression(runa, key_token.as_str().unwrap());
+        if !success { return ( false, RunaValue::Nil ); }
 
-            let sep = lexer::next(runa);
-            if let Some(",") = sep.as_str_ref() { continue; }
-            if let Some("}") = sep.as_str_ref() { return (true, RunaValue::Table(table)); }
-            return (false, RunaValue::Nil);
+        table.push((i.to_string(), Rc::new(RefCell::new(value))));
+        i += 1;
+
+        let sep = lexer::next(runa);
+        match sep.as_str_ref() {
+            Some(",") => continue,
+            Some("}") => return ( true, RunaValue::Table(table) ),
+            _ => {
+                lexer::back(runa, sep);
+                return ( true, RunaValue::Table(table) );
+            }
         }
     }
 }

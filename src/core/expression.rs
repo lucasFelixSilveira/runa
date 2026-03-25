@@ -28,38 +28,37 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
                         let field_token = lexer::next(runa);
                         let field = match field_token.as_str() {
                             Some(f) => f,
-                            None => return (false, RunaValue::Nil),
+                            None => return ( false, RunaValue::Nil ),
                         };
 
-                        println!("accessing {} in {:#?}", field, table);
                         let val: Vec<_> = table.iter()
                             .filter(|x| x.0 == field.as_str())
                             .collect();
 
-                        if val.is_empty() { return (false, RunaValue::Nil); }
-                        return (true, val[0].1.borrow().clone());
+                        if val.is_empty() { return ( false, RunaValue::Nil ); }
+                        return ( true, val[0].1.borrow().clone() );
                     }
 
                     Some("[") => {
                         let index_token = lexer::next(runa);
                         let (success, value) = runa_expression(runa, index_token.as_str().unwrap());
-                        if !success { return (false, RunaValue::Nil); }
+                        if !success { return ( false, RunaValue::Nil ); }
 
                         let close = lexer::next(runa);
-                        if close.as_str().unwrap() != "]" { return (false, RunaValue::Nil); }
+                        if close.as_str().unwrap() != "]" { return ( false, RunaValue::Nil ); }
 
                         if let RunaValue::Integer(index) = value {
-                            if index >= table.len() as usize { return (false, RunaValue::Nil); }
+                            if index >= table.len() as usize { return ( false, RunaValue::Nil); }
                             let val: Vec<_> = table.iter()
                                 .filter(|x| x.0 == index.to_string())
                                 .collect();
 
                             if val.is_empty() { return (false, RunaValue::Nil); }
-                            return (true, val[0].1.borrow().clone());
+                            return ( true, val[0].1.borrow().clone() );
                         }
-                        return (false, RunaValue::Nil);
+                        return ( false, RunaValue::Nil );
                     }
-                    _ => return (false, RunaValue::Nil),
+                    _ => return ( false, RunaValue::Nil ),
                 }
             }
 
