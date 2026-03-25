@@ -1,60 +1,45 @@
 use crate::core::{expression::runa_expression, *};
 
 pub fn runa_expression_tables(runa: &mut Runa, _: &String) -> (bool, RunaValue) {
-    let next = lexer::next(runa);
-    if next.is_eof()
-    { return ( false, RunaValue::Nil ); }
-
-    if next.as_str().unwrap() == "}"
-    { return ( true, RunaValue::Table(Vec::new()) ); }
-
-    lexer::back(runa, next);
-
-    let mut i = 1;
     let mut table = Vec::new();
+    let mut i = 1;
+
     loop {
-        let next  = lexer::next(runa);
-        if next.is_eof() { return ( false, RunaValue::Nil ); }
-        if next.as_str().unwrap() == "}" {
-            lexer::back(runa, next);
-            return ( true, RunaValue::Table(table) );
-        }
+        let key_token = lexer::next(runa);
+        if key_token.is_eof() { return (false, RunaValue::Nil); }
+        if let Some("}") = key_token.as_str_ref() { return (true, RunaValue::Table(table)); }
 
         let after = lexer::next(runa);
-        if after.is_eof() { return ( false, RunaValue::Nil ); }
+        if let Some("=") = after.as_str_ref() {
+            let key = match key_token.as_str() {
+                Some(k) => k.clone(),
+                None => return (false, RunaValue::Nil),
+            };
 
-        if after.as_str().unwrap() == "=" {
-            let key = next.as_str().unwrap().to_string();
-            let resolve = lexer::next(runa);
-            if resolve.is_eof() { return ( false, RunaValue::Nil ); }
-
-            let (success, value) = runa_expression(runa, resolve.as_str().unwrap());
+            let value_token = lexer::next(runa);
+            let (success, value) = runa_expression(runa, value_token.as_str().unwrap());
             if !success { return ( false, RunaValue::Nil ); }
-            let rc = Rc::new(RefCell::new(value));
-            table.push((key, rc));
 
-            let comma = lexer::next(runa);
-            if comma.is_eof() { return ( false, RunaValue::Nil ); }
-            if comma.as_str().unwrap() != "," { return ( false, RunaValue::Nil ); }
-            continue;
+            table.push((key, Rc::new(RefCell::new(value))));
+
+            let sep = lexer::next(runa);
+            if let Some(",") = sep.as_str_ref() { continue; }
+            if let Some("}") = sep.as_str_ref() { return (true, RunaValue::Table(table)); }
+            return (false, RunaValue::Nil);
         }
+        else {
+            lexer::back(runa, after);
 
-        lexer::back(runa, after);
+            let (success, value) = runa_expression(runa, key_token.as_str().unwrap());
+            if !success { return (false, RunaValue::Nil); }
 
-        let (success, value) = runa_expression(runa, next.as_str().unwrap());
-        if !success { return ( false, RunaValue::Nil ); }
+            table.push((i.to_string(), Rc::new(RefCell::new(value))));
+            i += 1;
 
-        let after = lexer::next(runa);
-
-        let rc = Rc::new(RefCell::new(value));
-        table.push((i.to_string(), rc));
-        i += 1;
-
-        if after.is_eof() { return ( false, RunaValue::Nil ); }
-        if after.as_str().unwrap() == "," { continue; }
-        if after.as_str().unwrap() == "}" { break; }
-        return ( false, RunaValue::Nil );
+            let sep = lexer::next(runa);
+            if let Some(",") = sep.as_str_ref() { continue; }
+            if let Some("}") = sep.as_str_ref() { return (true, RunaValue::Table(table)); }
+            return (false, RunaValue::Nil);
+        }
     }
-
-    return ( true, RunaValue::Table(table) );
 }

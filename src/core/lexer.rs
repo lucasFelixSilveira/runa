@@ -21,6 +21,13 @@ impl Token {
             _ => None,
         }
     }
+
+    pub fn as_str_ref(&self) -> Option<&str> {
+        match self {
+            Token::Value(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
 }
 
 use crate::core::{Runa, isinteger};

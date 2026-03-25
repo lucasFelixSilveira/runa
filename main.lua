@@ -1,2 +1,5 @@
-local rax_array = { "%al", "%ax", "%eax", "%rax" }
-print(rax_array[mlog2(1)])
+local person = {
+    name = "lucas",
+    age = 16
+}
+print(person.name)
