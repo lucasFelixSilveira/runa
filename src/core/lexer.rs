@@ -38,7 +38,10 @@ static mut POS: [usize; 64] = [0; 64];
 
 pub fn back(runa: &mut Runa, token: Token) {
     if let Token::Value(data) = token {
-        runa.file.as_mut().unwrap().seek_relative(-(data.len() as i64)).ok();
+        let mut pos = -((data.len()) as i64);
+        if data.len() > 1 { pos -= 1; }
+        unsafe { POSITION -= pos as i64 };
+        runa.file.as_mut().unwrap().seek_relative(pos).ok();
     }
 }
 

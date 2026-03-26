@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::ffi::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::rc::Rc;
@@ -6,6 +7,7 @@ use std::process::exit;
 pub mod lexer;
 pub mod parser;
 pub mod expression;
+pub mod internal;
 
 pub type RunaCallback = fn(*mut Runa);
 
@@ -16,7 +18,7 @@ pub enum RunaValue {
     Integer(usize),
     Float(f64),
     Boolean(bool),
-    Table(Vec<(String, Rc<RefCell<RunaValue>>)>),
+    Table(String, Vec<(String, Rc<RefCell<RunaValue>>)>),
 
     #[default]
     Nil,
@@ -145,7 +147,13 @@ pub fn runa_value_to_string(value: &RunaValue) -> String {
         RunaValue::Float(f) => f.to_string(),
         RunaValue::Boolean(b) => b.to_string(),
         RunaValue::Nil => "nil".to_string(),
-        RunaValue::Table(_) => "table".to_string()
+        RunaValue::Table(id, table) => {
+            let mut s = format!("table({}...{}) {{ ", id[..3].to_string(), id[24..].to_string());
+            for (name, value) in table
+            { s.push_str(&format!("{} = {}, ", name, runa_value_to_string(&*value.borrow()))); }
+            s.push('}');
+            s
+        }
     }
 }
 
@@ -169,6 +177,32 @@ pub fn runa_assign_local(runa: &mut Runa, name: String, value: RunaValue) {
     runa_push_local(runa, Local::Variable(Variable { name, value }));
 }
 
+
+pub fn runa_peek_table_by_internal_id(runa: &Runa, internal_id: *const u8) -> &RunaValue {
+    if internal_id.is_null() { return &RunaValue::Nil; }
+    let c_str = unsafe { CStr::from_ptr(internal_id as *const i8) };
+    let id_str = match c_str.to_str() {
+        Ok(s) => s,
+        Err(_) => return &RunaValue::Nil,
+    };
+
+    let locals = match runa.stack.last() {
+        Some(locals) => locals,
+        None => return &RunaValue::Nil,
+    };
+
+    for local in locals {
+        if let Local::Variable(var) = local {
+            if let RunaValue::Table(table_id, _) = &var.value {
+                if [table_id, "0"].concat() == id_str {
+                    return &var.value;
+                }
+            }
+        }
+    }
+
+    &RunaValue::Nil
+}
 pub fn parse(runa: &mut Runa) {
     parser::parse(runa);
 }

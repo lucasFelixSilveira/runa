@@ -150,7 +150,6 @@ pub fn parse(runa: &mut Runa) {
         if data.is_eof() { break; }
 
         if let Token::Value(token) = &data {
-            if token == ";" { continue; }
             if local(runa, token) { continue; }
             if identifier(runa, token) { continue; }
         }

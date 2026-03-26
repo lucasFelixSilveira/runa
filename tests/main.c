@@ -13,7 +13,7 @@ void mlog2(Runa *runa) {
 
 void print(Runa *runa) {
     RunaValueFFI val = runa_peek_arg(runa, 0);
-    char *str = runa_value_to_string(val);
+    char *str = runa_value_to_string(runa, val);
     printf("%s\n", str);
     runa_optional(RUNA_FREE_STRING_BY_VALUE, runa_str_free, str, val);
     runa_value_free(val);

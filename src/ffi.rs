@@ -1,5 +1,5 @@
 use std::ffi::CString;
-use std::os::raw::{c_char};
+use std::os::raw::c_char;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -8,12 +8,14 @@ pub enum RunaValueTag {
     Integer,
     Float,
     Boolean,
+    Table,
     Nil,
 }
 
 #[repr(C)]
 pub union RunaValueData {
     pub string: *const c_char,
+    pub identifier: *const u8,
     pub integer: usize,
     pub float: f64,
     pub boolean: bool,
@@ -58,9 +60,9 @@ impl crate::core::RunaValue {
                 data: RunaValueData { integer: 0 }
             },
 
-            crate::core::RunaValue::Table(_) => RunaValueFFI {
-                tag: RunaValueTag::Nil,
-                data: RunaValueData { integer: 0 }
+            crate::core::RunaValue::Table(internal_identifier, _) => RunaValueFFI {
+                tag: RunaValueTag::Table,
+                data: RunaValueData { identifier: internal_identifier.as_ptr() }
             },
         }
     }

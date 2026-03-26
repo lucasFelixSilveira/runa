@@ -21,7 +21,7 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
 
         let local = value.unwrap();
         if let Local::Variable(var) = local {
-            if let RunaValue::Table(table) = &var.value {
+            if let RunaValue::Table(_, table) = &var.value {
                 let operator = lexer::next(runa);
                 match operator.as_str_ref() {
                     Some(".") => {
@@ -58,7 +58,10 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
                         }
                         return ( false, RunaValue::Nil );
                     }
-                    _ => return ( false, RunaValue::Nil ),
+                    _ => {
+                        lexer::back(runa, operator);
+                        return ( true, var.value.clone() );
+                    }
                 }
             }
 

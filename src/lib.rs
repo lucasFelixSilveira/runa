@@ -105,15 +105,15 @@ pub extern "C" fn runa_value_free(val: ffi::RunaValueFFI) {
                 if! ptr.is_null()
                 { _ = CString::from_raw(ptr); }
             }
+
             _ => {}
         }
     }
 }
 
 
-#[no_mangle]
-#[allow(unreachable_patterns)]
-pub extern "C" fn runa_value_to_string(val: ffi::RunaValueFFI) -> *mut c_char {
+runa_api_function!(
+fn runa_value_to_string(runa, val: ffi::RunaValueFFI) -> *mut c_char {
     unsafe {
         let c_string = match val.tag {
             ffi::RunaValueTag::String  => return val.data.string as *mut c_char,
@@ -121,12 +121,17 @@ pub extern "C" fn runa_value_to_string(val: ffi::RunaValueFFI) -> *mut c_char {
             ffi::RunaValueTag::Float   => CString::new(val.data.float.to_string()).unwrap(),
             ffi::RunaValueTag::Boolean => CString::new(val.data.boolean.to_string()).unwrap(),
             ffi::RunaValueTag::Nil     => CString::new("nil").unwrap(),
-            _ => unreachable!(),
+            ffi::RunaValueTag::Table   => {
+                let value = core::runa_peek_table_by_internal_id(runa, val.data.identifier);
+                let str = core::runa_value_to_string(value);
+                CString::new(str).unwrap()
+            }
         };
 
         c_string.into_raw()
     }
 }
+);
 
 #[no_mangle]
 pub extern "C" fn runa_str_free(ptr: *mut c_char) {

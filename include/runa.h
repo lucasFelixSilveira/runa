@@ -8,6 +8,7 @@
     X(runa_integer, "integer"), \
     X(runa_float,   "float"), \
     X(runa_boolean, "boolean"), \
+    X(runa_table,   "table"), \
     X(runa_nil,     "nil")
 
 #define X(tag, name) tag
@@ -51,6 +52,6 @@ void runa_push_function(Runa *runa, const char *name, runa_callback callback, in
 void runa_push_result(Runa *runa, RunaValueFFI value);
 RunaValueFFI runa_peek_arg(Runa *runa, int index);
 void runa_value_free(RunaValueFFI value);
-char* runa_value_to_string(RunaValueFFI value);
+char* runa_value_to_string(Runa *runa, RunaValueFFI value);
 void runa_str_free(char *str);
 #endif

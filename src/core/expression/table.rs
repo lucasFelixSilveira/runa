@@ -8,7 +8,7 @@ pub fn runa_expression_tables(runa: &mut Runa, _: &String) -> (bool, RunaValue) 
         let key_token = lexer::next(runa);
         if key_token.is_eof() { return ( false, RunaValue::Nil ); }
 
-        if let Some("}") = key_token.as_str_ref() { return ( true, RunaValue::Table(table) ); }
+        if let Some("}") = key_token.as_str_ref() { return ( true, RunaValue::Table(internal::gen_id(), table) ); }
 
         let after = lexer::next(runa);
 
@@ -27,10 +27,10 @@ pub fn runa_expression_tables(runa: &mut Runa, _: &String) -> (bool, RunaValue) 
             let sep = lexer::next(runa);
             match sep.as_str_ref() {
                 Some(",") => continue,
-                Some("}") => return ( true, RunaValue::Table(table) ),
+                Some("}") => return ( true, RunaValue::Table(internal::gen_id(), table) ),
                 _ => {
                     lexer::back(runa, sep);
-                    return ( true, RunaValue::Table(table) );
+                    return ( true, RunaValue::Table(internal::gen_id(), table) );
                 }
             }
         }
@@ -46,10 +46,10 @@ pub fn runa_expression_tables(runa: &mut Runa, _: &String) -> (bool, RunaValue) 
         let sep = lexer::next(runa);
         match sep.as_str_ref() {
             Some(",") => continue,
-            Some("}") => return ( true, RunaValue::Table(table) ),
+            Some("}") => return ( true, RunaValue::Table(internal::gen_id(), table) ),
             _ => {
                 lexer::back(runa, sep);
-                return ( true, RunaValue::Table(table) );
+                return ( true, RunaValue::Table(internal::gen_id(), table) );
             }
         }
     }
