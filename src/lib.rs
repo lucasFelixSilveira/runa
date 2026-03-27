@@ -87,7 +87,7 @@ fn runa_push_result(runa, value: ffi::RunaValueFFI) {
                     let c_str = CStr::from_ptr(value.data.string);
                     RunaValue::String(c_str.to_string_lossy().into_owned())
                 }
-                ffi::RunaValueTag::Integer => RunaValue::Integer(value.data.integer as usize),
+                ffi::RunaValueTag::Integer => RunaValue::Integer(value.data.integer as isize),
                 ffi::RunaValueTag::Float   => RunaValue::Float(value.data.float),
                 ffi::RunaValueTag::Boolean => RunaValue::Boolean(value.data.boolean),
                 _ => RunaValue::Nil,

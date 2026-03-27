@@ -15,7 +15,7 @@ pub type RunaCallback = fn(*mut Runa);
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum RunaValue {
     String(String),
-    Integer(usize),
+    Integer(isize),
     Float(f64),
     Boolean(bool),
     Table(String, Vec<(String, Rc<RefCell<RunaValue>>)>),

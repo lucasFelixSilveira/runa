@@ -16,7 +16,7 @@ pub enum RunaValueTag {
 pub union RunaValueData {
     pub string: *const c_char,
     pub identifier: *const u8,
-    pub integer: usize,
+    pub integer: isize,
     pub float: f64,
     pub boolean: bool,
 }

@@ -19,7 +19,7 @@ fn parse_primary(runa: &mut Runa, token: &str) -> RunaValue {
 
     if let Ok(v) = token.parse::<f64>() {
         return if v.fract() == 0.0 {
-            RunaValue::Integer(v as usize)
+            RunaValue::Integer(v as isize)
         } else {
             RunaValue::Float(v)
         };
@@ -125,7 +125,7 @@ fn parse_expression_bp(runa: &mut Runa, mut left: RunaValue, min_bp: i32) -> Run
         let result = apply_op(op, a, b);
 
         left = if result.fract() == 0.0 {
-            RunaValue::Integer(result as usize)
+            RunaValue::Integer(result as isize)
         } else {
             RunaValue::Float(result)
         };
