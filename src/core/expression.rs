@@ -4,6 +4,19 @@ mod string;
 mod numeric;
 mod table;
 
+pub fn simulate_expression(runa: &mut Runa, val: &RunaValue) -> (bool, RunaValue) {
+    match val {
+        RunaValue::String(s) => string::runa_expression_string(runa, &format!("'{}'", s)),
+        RunaValue::Integer(i) => numeric::runa_expression_numeric(runa, &i.to_string()),
+        RunaValue::Float(f) => numeric::runa_expression_numeric(runa, &f.to_string()),
+        RunaValue::Table(_, _) => {
+            runa_spawn_fatal_error(format!("Internal runa error - Runa can't simulate a table"));
+            unreachable!()
+        }
+        _ => (false, RunaValue::Nil),
+    }
+}
+
 pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
     if token == "{"
     { return table::runa_expression_tables(runa, token); }
@@ -95,10 +108,11 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
                     }
                 }
 
-                return (true, current);
+                return simulate_expression(runa, &current);
             }
 
-            return ( true, var.value.clone() );
+            let val = var.value.clone();
+            return simulate_expression(runa, &val);
         }
 
         if let Local::Function(_) = local {
@@ -107,7 +121,7 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
             _ = function(runa, token);
             let data = runa.return_value.clone().unwrap_or_else(|| RunaValue::Nil);
             runa.return_value = None;
-            return ( true, data );
+            return simulate_expression(runa, &data);
         }
     }
 

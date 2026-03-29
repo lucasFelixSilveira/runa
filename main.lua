@@ -6,6 +6,5 @@ local object = {
         }
     }
 }
-print(object.content.messages[1])
-print(object.content.messages[2])
-print(object.content.messages[0])
+
+print(object.content.messages[1] .. ' and ' .. object.content.messages[2])
