@@ -1,10 +1,4 @@
-local object = {
-    content = {
-        messages = {
-            "Hello, world",
-            "I love my femboy"
-        }
-    }
-}
-
-print(object.content.messages[1] .. ' and ' .. object.content.messages[2])
+local dev = { age = 16 }
+if dev.age == 16 then
+	print("Its me")
+end

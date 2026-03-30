@@ -8,6 +8,7 @@ pub mod lexer;
 pub mod parser;
 pub mod expression;
 pub mod internal;
+pub mod statements;
 
 pub type RunaCallback = fn(*mut Runa);
 
@@ -22,6 +23,19 @@ pub enum RunaValue {
 
     #[default]
     Nil,
+}
+
+impl RunaValue {
+    pub fn kind_to_string(&self) -> &str {
+        match self {
+            RunaValue::String(_) => "string",
+            RunaValue::Integer(_) => "integer",
+            RunaValue::Float(_) => "float",
+            RunaValue::Boolean(_) => "boolean",
+            RunaValue::Table(_, _) => "table",
+            RunaValue::Nil => "nil",
+        }
+    }
 }
 
 #[allow(unpredictable_function_pointer_comparisons)]
@@ -60,6 +74,7 @@ pub struct Runa {
     pub args: Vec<Vec<RunaValue>>,
     pub should_leave: bool,
     pub return_value: Option<RunaValue>,
+    pub modularization: Vec<i32>
 }
 
 pub fn runa_spawn_fatal_error(message: String) {
@@ -203,6 +218,7 @@ pub fn runa_peek_table_by_internal_id(runa: &Runa, internal_id: *const u8) -> &R
 
     &RunaValue::Nil
 }
+
 pub fn parse(runa: &mut Runa) {
     parser::parse(runa);
 }
