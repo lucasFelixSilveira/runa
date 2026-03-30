@@ -74,7 +74,8 @@ pub struct Runa {
     pub args: Vec<Vec<RunaValue>>,
     pub should_leave: bool,
     pub return_value: Option<RunaValue>,
-    pub modularization: Vec<i32>
+    pub modularization: Vec<i32>,
+    pub if_resolved: Vec<bool>,
 }
 
 pub fn runa_spawn_fatal_error(message: String) {
