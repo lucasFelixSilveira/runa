@@ -6,6 +6,7 @@ pub fn statement(runa: &mut Runa, token: &String) -> bool {
         "else" => else_statement(runa),
         "elseif" => elseif_statement(runa),
         "function" => function_statement(runa),
+        "return" => return_statement(runa),
         _ => false,
     }
 }
@@ -256,4 +257,21 @@ pub fn function_statement(runa: &mut Runa) -> bool {
     }));
 
     return true;
+}
+
+pub fn return_statement(runa: &mut Runa) -> bool {
+    let tk = lexer::next(runa);
+    let Token::Value(value) = tk else {
+        return false;
+    };
+
+    let (success, value) = runa_expression(runa, &value);
+    if !success {
+        runa_spawn_fatal_error(format!("Fail to return expression"));
+        return false;
+    }
+
+    runa.return_value = Some(value);
+    runa.should_leave = true;
+    return false;
 }

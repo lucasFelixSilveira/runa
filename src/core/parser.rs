@@ -1,9 +1,9 @@
 use crate::core::{lexer::Token, expression::runa_expression, *};
 
 pub fn function(runa: &mut Runa, token: &String) -> bool {
-    let (is_std, callback, argc, body) = {
+    let (is_std, callback, argc, body, argv) = {
         let function = runa_peek_function(runa, token).unwrap();
-        (function.std, function.callback, function.argc, function.body)
+        (function.std, function.callback, function.argc, function.body, function.argv)
     };
 
     let mut args = Vec::new();
@@ -20,6 +20,13 @@ pub fn function(runa: &mut Runa, token: &String) -> bool {
         if !success
         { runa_spawn_fatal_error(format!("invalid expression in argument: {}", tok.as_str().unwrap())); }
         args.push(value);
+
+        let comma_tk = lexer::next(runa);
+        let Token::Value(comma) = comma_tk else { return false; };
+
+        if comma == "," { continue; }
+        if comma == ")" { break; }
+        runa_spawn_fatal_error(format!("expected comma after argument, got: {}", comma));
     }
 
     if args.len() < argc {
@@ -34,10 +41,18 @@ pub fn function(runa: &mut Runa, token: &String) -> bool {
         if let Some(cb) = callback { cb(runa); }
         runa.args.pop();
     } else {
-        runa.args.push(args);
+        runa.stack.push(Vec::new());
+        let ids = argv.unwrap();
+        for (i, arg) in args.iter().enumerate() {
+            runa_push_local(runa, Local::Variable(Variable {
+                name: ids[i].clone(),
+                value: arg.clone()
+            }));
+        }
+
         lexer::branch(runa, body.unwrap());
         parse(runa);
-        runa.args.pop();
+        runa.stack.pop();
     }
 
     return true;
@@ -151,6 +166,11 @@ fn local(runa: &mut Runa, token: &String) -> bool {
 
 pub fn parse(runa: &mut Runa) {
     loop {
+        if runa.should_leave {
+            runa.should_leave = false;
+            break;
+        }
+
         let data = lexer::next(runa);
         if data.is_eof() { break; }
 

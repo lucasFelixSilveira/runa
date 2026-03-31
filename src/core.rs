@@ -111,12 +111,14 @@ pub fn isstring(token: &str) -> bool {
 pub fn runa_peek(runa: &Runa, name: &String) -> Option<Local> {
     if runa.stack.is_empty() { return None; }
 
-    let locals = runa.stack.last().unwrap();
-    for local in locals {
-        match local {
-            Local::Function(func) if func.name == *name => return Some(local.clone()),
-            Local::Variable(var) if var.name == *name => return Some(local.clone()),
-            _ => continue
+    for i in (0..runa.stack.len()).rev() {
+        let locals = runa.stack.get(i).unwrap();
+        for local in locals {
+            match local {
+                Local::Function(func) if func.name == *name => return Some(local.clone()),
+                Local::Variable(var) if var.name == *name => return Some(local.clone()),
+                _ => continue
+            }
         }
     }
 

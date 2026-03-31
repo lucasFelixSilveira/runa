@@ -96,6 +96,11 @@ fn parse_expression_bp(runa: &mut Runa, mut left: RunaValue, min_bp: i32) -> Run
             None => return left,
         };
 
+        if op == ")" {
+            lexer::back(runa, op_token);
+            return left;
+        }
+
         if !is_operator(op) {
             lexer::back(runa, op_token);
             return left;
@@ -116,7 +121,6 @@ fn parse_expression_bp(runa: &mut Runa, mut left: RunaValue, min_bp: i32) -> Run
         }
 
         let mut right = parse_primary(runa, next.as_str().unwrap());
-
         right = parse_expression_bp(runa, right, right_bp);
 
         let a = runa_value_to_string(&left).parse::<f64>().unwrap();

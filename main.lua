@@ -1,5 +1,7 @@
-function a()
-    print("Hello, world")
+function loop(time)
+    sleep(time)
+    print("Hello, world!")
+    loop(time)
 end
 
-a()
+loop(1)

@@ -1,4 +1,5 @@
 use std::io::Read;
+use crate::core::{Runa, isinteger, lzma};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
@@ -30,14 +31,8 @@ impl Token {
     }
 }
 
-use crate::core::{Runa, isinteger, lzma};
-
 pub fn back(runa: &mut Runa, token: Token) {
-    if let Token::Value(data) = token {
-        let mut pos = -((data.len()) as i64);
-        if data.len() > 1 { pos -= 1; }
-        runa.file.as_mut().unwrap().seek_relative(pos).ok();
-    }
+    runa.pushed.push(token);
 }
 
 pub fn branch(runa: &mut Runa, body: Vec<u8>) {
