@@ -9,9 +9,9 @@ pub mod parser;
 pub mod expression;
 pub mod internal;
 pub mod statements;
+pub mod lzma;
 
 pub type RunaCallback = fn(*mut Runa);
-
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum RunaValue {
@@ -45,7 +45,7 @@ pub struct Function {
     pub std: bool,
     pub argv: Option<Vec<String>>,
     pub argc: usize,
-    pub body: Option<String>,
+    pub body: Option<Vec<u8>>,
     pub callback: Option<RunaCallback>
 }
 
@@ -67,7 +67,6 @@ pub type Locals = Vec<Local>;
 pub struct Runa {
     pub error: bool,
     pub pushed: Vec<lexer::Token>,
-    pub code_stack: Vec<String>,
     pub filename: Option<String>,
     pub file: Option<BufReader<File>>,
     pub stack: Vec<Locals>,
@@ -76,6 +75,7 @@ pub struct Runa {
     pub return_value: Option<RunaValue>,
     pub modularization: Vec<i32>,
     pub if_resolved: Vec<bool>,
+    pub bodies: Vec<String>,
 }
 
 pub fn runa_spawn_fatal_error(message: String) {
@@ -192,7 +192,6 @@ pub fn runa_assign_local(runa: &mut Runa, name: String, value: RunaValue) {
     }
     runa_push_local(runa, Local::Variable(Variable { name, value }));
 }
-
 
 pub fn runa_peek_table_by_internal_id(runa: &Runa, internal_id: *const u8) -> &RunaValue {
     if internal_id.is_null() { return &RunaValue::Nil; }

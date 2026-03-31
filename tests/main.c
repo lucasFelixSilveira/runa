@@ -20,6 +20,8 @@ void print(Runa *runa) {
 }
 
 int main() {
+    tests();
+
     Runa *runa = runa_start();
     runa_push_function(runa, "print", (runa_callback)print, 1);
     runa_push_function(runa, "mlog2", (runa_callback)mlog2, 1);

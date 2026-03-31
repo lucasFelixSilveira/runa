@@ -5,6 +5,7 @@ pub fn statement(runa: &mut Runa, token: &String) -> bool {
         "if" => if_statement(runa),
         "else" => else_statement(runa),
         "elseif" => elseif_statement(runa),
+        "function" => function_statement(runa),
         _ => false,
     }
 }
@@ -134,7 +135,7 @@ pub fn else_statement(runa: &mut Runa) -> bool {
         loop {
             let tk = lexer::next(runa);
             let Token::Value(value) = tk else {
-                runa_spawn_fatal_error(format!("Expected 'end', got EOF in if statement"));
+                runa_spawn_fatal_error(format!("Expected 'end', got EOF in else statement"));
                 unreachable!()
             };
 
@@ -156,7 +157,7 @@ pub fn elseif_statement(runa: &mut Runa) -> bool {
         loop {
             let tk = lexer::next(runa);
             let Token::Value(value) = tk else {
-                runa_spawn_fatal_error(format!("Expected 'end', got EOF in if statement"));
+                runa_spawn_fatal_error(format!("Expected 'end', got EOF in elseif statement"));
                 unreachable!()
             };
 
@@ -170,4 +171,89 @@ pub fn elseif_statement(runa: &mut Runa) -> bool {
         return true;
     }
     return if_statement(runa);
+}
+
+
+pub fn function_statement(runa: &mut Runa) -> bool {
+    let identifier_tk = lexer::next(runa);
+    let Token::Value(identifier) = identifier_tk else {
+        runa_spawn_fatal_error(format!("Expected identifier, got EOF"));
+        unreachable!()
+    };
+
+    if !isidentifier(&identifier) {
+        runa_spawn_fatal_error(format!("Expected identifier, got '{}'", identifier));
+        return false;
+    }
+
+    let open_tk = lexer::next(runa);
+    let Token::Value(open_value) = open_tk else {
+        runa_spawn_fatal_error(format!("Expected '(', got EOF"));
+        unreachable!()
+    };
+
+    if open_value != "(" { return false; }
+
+    let mut argc = 0;
+    let mut argv = Vec::new();
+    loop {
+        let tk = lexer::next(runa);
+        let Token::Value(value) = tk else {
+            runa_spawn_fatal_error(format!("Expected ')', got EOF in function statement"));
+            unreachable!()
+        };
+
+        if value == ")" { break; }
+
+        if !isidentifier(&value) {
+            runa_spawn_fatal_error(format!("Expected identifier, got '{}' in function arguments", value));
+            return false;
+        }
+
+        argv.push(value.clone());
+
+        let comma = lexer::next(runa);
+        let Token::Value(comma_value) = comma else {
+            runa_spawn_fatal_error(format!("Expected ',', got EOF in function arguments"));
+            unreachable!()
+        };
+
+        argc += 1;
+        if comma_value == ")" { break; }
+        if comma_value == "," { continue; }
+
+        runa_spawn_fatal_error(format!("Expected ',' or ')', got '{}' in function arguments", comma_value));
+    }
+
+    let mut code = String::new();
+    let mut i = 0;
+    loop {
+        let tk = lexer::next(runa);
+        let Token::Value(value) = tk else {
+            runa_spawn_fatal_error(format!("Expected 'end', got EOF in function statement"));
+            unreachable!()
+        };
+
+        match value.as_str() {
+            "end" if i == 0 => break,
+            "if" | "do" | "function" => i += 1,
+            "end" => i -= 1,
+            _ => {},
+        }
+
+        code.push_str(&value);
+        code.push('\n');
+    }
+
+    let compacted = lzma::compress(code.as_bytes()).unwrap();
+    runa_push_local(runa, Local::Function(Function {
+        argc: argc,
+        argv: Some(argv),
+        name: identifier.clone(),
+        std: false,
+        body: Some(compacted.clone()),
+        ..Default::default()
+    }));
+
+    return true;
 }

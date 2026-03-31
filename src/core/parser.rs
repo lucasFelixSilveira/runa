@@ -1,9 +1,9 @@
 use crate::core::{lexer::Token, expression::runa_expression, *};
 
 pub fn function(runa: &mut Runa, token: &String) -> bool {
-    let (is_std, callback, argc) = {
+    let (is_std, callback, argc, body) = {
         let function = runa_peek_function(runa, token).unwrap();
-        (function.std, function.callback, function.argc)
+        (function.std, function.callback, function.argc, function.body)
     };
 
     let mut args = Vec::new();
@@ -32,6 +32,11 @@ pub fn function(runa: &mut Runa, token: &String) -> bool {
     if is_std {
         runa.args.push(args);
         if let Some(cb) = callback { cb(runa); }
+        runa.args.pop();
+    } else {
+        runa.args.push(args);
+        lexer::branch(runa, body.unwrap());
+        parse(runa);
         runa.args.pop();
     }
 

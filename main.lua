@@ -1,4 +1,5 @@
-local dev = { age = 16 }
-if dev.age == 16 then
-	print("Its me")
+function a()
+    print("Hello, world")
 end
+
+a()

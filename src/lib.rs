@@ -19,6 +19,8 @@ macro_rules! runa_api_function {
     };
 }
 
+#[no_mangle]
+pub extern "C" fn tests() {}
 
 #[no_mangle]
 pub extern "C" fn runa_start() -> *mut Runa {

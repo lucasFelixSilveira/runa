@@ -45,6 +45,8 @@ switch (funcid) {                                     \
     } break;                                          \
 }
 
+void tests();
+
 Runa *runa_start();
 void runa_loadfile(Runa *runa, const char *filename);
 void runa_free(Runa *runa);

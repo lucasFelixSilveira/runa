@@ -30,69 +30,36 @@ impl Token {
     }
 }
 
-use crate::core::{Runa, isinteger};
-
-static mut POSITION: i64 = 0;
-static mut CODE_ID: i32 = 0;
-static mut POS: [usize; 64] = [0; 64];
+use crate::core::{Runa, isinteger, lzma};
 
 pub fn back(runa: &mut Runa, token: Token) {
     if let Token::Value(data) = token {
         let mut pos = -((data.len()) as i64);
         if data.len() > 1 { pos -= 1; }
-        unsafe { POSITION -= pos as i64 };
         runa.file.as_mut().unwrap().seek_relative(pos).ok();
     }
+}
+
+pub fn branch(runa: &mut Runa, body: Vec<u8>) {
+    let decompressed = lzma::decompress(&body).unwrap();
+    let data = String::from_utf8_lossy(&decompressed).into_owned();
+    runa.bodies.push(data);
 }
 
 pub fn next(runa: &mut Runa) -> Token {
     let mut buffer = String::with_capacity(2048);
 
-    unsafe {
-        POSITION += 1;
-    }
-
     if let Some(token) = runa.pushed.pop() {
         return token;
     }
 
-    if !runa.code_stack.is_empty() {
-        let code = runa.code_stack.last().unwrap().clone();
-
-        let (locale, code_id) = unsafe { (POS[CODE_ID as usize], CODE_ID) };
-
-        let chars: Vec<char> = code.chars().collect();
-        let len = chars.len();
-
-        let mut i = locale;
-
-        while i < len {
-            if i >= len.saturating_sub(2) {
-                let _ = runa.code_stack.pop().unwrap();
-                buffer.push(chars[i]);
-
-                unsafe {
-                    POS[code_id as usize] = 0;
-                    CODE_ID -= 1;
-                }
-
-                runa.should_leave = true;
-                return Token::Value(buffer);
-            }
-
-            if chars[i] == '\n' {
-                break;
-            }
-
-            buffer.push(chars[i]);
-            i += 1;
-        }
-
-        unsafe {
-            POS[code_id as usize] = i + 1;
-        }
-
-        return Token::Value(buffer);
+    if runa.bodies.len() > 0 {
+        let body = runa.bodies.first_mut().unwrap();
+        let mem = (*body).clone();
+        let (token, rest) = mem.split_once('\n').unwrap();
+        if rest.is_empty() { runa.bodies.remove(0); }
+        else { *body = rest.to_string(); }
+        return Token::Value(token.to_string());
     }
 
     let mut byte = [0u8; 1];
