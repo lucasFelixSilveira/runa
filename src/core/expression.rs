@@ -133,8 +133,28 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
                 return simulate_expression(runa, &current);
             }
 
-            let val = var.value.clone();
-            return simulate_expression(runa, &val);
+            let sign = lexer::next(runa);
+            let lexer::Token::Value(op) = &sign else {
+                return ( true, var.value.clone() );
+            };
+
+            return match op.as_str() {
+                "=" => {
+                    let expr = lexer::next(runa);
+                    let (success, value) = runa_expression(runa, expr.as_str().unwrap_or_else(|| {
+                        runa_spawn_fatal_error(format!("Has been expected a valid runa expression after `=` in the local assignment. Found `EOF`"));
+                        unreachable!()
+                    }));
+
+                    if !success { return ( false, RunaValue::Nil ); }
+                    runa_assign_local(runa, token.clone(), value.clone());
+                    ( true, value )
+                }
+                _ => {
+                    lexer::back(runa, sign);
+                    ( true, var.value.clone() )
+                }
+            };
         }
 
         if let Local::Function(_) = local {

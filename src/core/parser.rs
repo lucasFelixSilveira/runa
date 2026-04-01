@@ -63,6 +63,7 @@ pub fn identifier(runa: &mut Runa, token: &String) -> bool {
         return false;
     }
 
+
     let next = lexer::next(runa);
     if next.is_eof() {
         lexer::back(runa, next);
