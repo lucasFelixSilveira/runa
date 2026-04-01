@@ -152,7 +152,7 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
                 }
                 _ => {
                     lexer::back(runa, sign);
-                    ( true, var.value.clone() )
+                    simulate_expression(runa, &var.value)
                 }
             };
         }

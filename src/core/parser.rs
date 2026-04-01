@@ -78,6 +78,10 @@ pub fn identifier(runa: &mut Runa, token: &String) -> bool {
             lexer::back(runa, next);
             return runa_expression(runa, token).0;
         }
+        "=" => {
+            lexer::back(runa, next);
+            return runa_expression(runa, token).0;
+        }
         _ => {
             lexer::back(runa, next);
             return true;

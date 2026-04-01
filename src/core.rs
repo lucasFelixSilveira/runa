@@ -133,6 +133,20 @@ pub fn runa_peek(runa: &Runa, name: &String) -> Option<Local> {
     None
 }
 
+pub fn runa_peek_mutable(runa: &mut Runa, name: String) -> Option<&mut Local> {
+    for locals in runa.stack.iter_mut().rev() {
+        for local in locals.iter_mut() {
+            match local {
+                Local::Function(func) if func.name == name => return Some(local),
+                Local::Variable(var) if var.name == name => return Some(local),
+                _ => {}
+            }
+        }
+    }
+
+    None
+}
+
 pub fn runa_peek_function(runa: &Runa, name: &String) -> Option<Function> {
     let local = runa_peek(runa, name);
     if local.is_none() { runa_spawn_fatal_error(["you tried to call `", name.as_str(), "` but it's unknown"].concat()); }
@@ -186,22 +200,15 @@ pub fn runa_value_to_string(value: &RunaValue) -> String {
 
 #[allow(unreachable_patterns)]
 pub fn runa_assign_local(runa: &mut Runa, name: String, value: RunaValue) {
-    if let Some(locals) = runa.stack.last_mut() {
-        if let Some(local) = locals.iter_mut().find(|l| {
-            match l {
-                Local::Variable(var) => var.name == name,
-                Local::Function(func) => func.name == name,
-                _ => false,
-            }
-        }) {
-            match local {
-                Local::Variable(var) => var.value = value,
-                _ => {}
-            }
-            return;
-        }
-    }
-    runa_push_local(runa, Local::Variable(Variable { name, value }));
+    let from_stack = runa_peek_mutable(runa, name.clone());
+    if from_stack.is_none()
+    { runa_spawn_fatal_error(format!("You are trying to make a redefinition by `{name}`, a invalid variable")); }
+
+    if let Local::Function(_) = from_stack.as_ref().unwrap()
+    { runa_spawn_fatal_error(format!("You can't redefine `{name}`, because it's a function.")); }
+
+    let Local::Variable(var) = from_stack.unwrap() else { unreachable!() };
+    (*var).value = value;
 }
 
 pub fn runa_peek_value_to_pointer(runa: &Runa, val: RunaValue) -> RunaValue {
