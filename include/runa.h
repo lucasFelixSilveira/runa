@@ -4,12 +4,13 @@
 #include <stdbool.h>
 
 #define RUNA_TAG_FIELDS \
-    X(runa_string,  "string"), \
-    X(runa_integer, "integer"), \
-    X(runa_float,   "float"), \
-    X(runa_boolean, "boolean"), \
-    X(runa_table,   "table"), \
-    X(runa_nil,     "nil")
+    X(runa_string,    "string"), \
+    X(runa_integer,   "integer"), \
+    X(runa_float,     "float"), \
+    X(runa_boolean,   "boolean"), \
+    X(runa_table,     "table"), \
+    X(__internal_ptr, "pointer"), \
+    X(runa_nil,       "nil")
 
 #define X(tag, name) tag
 typedef enum {

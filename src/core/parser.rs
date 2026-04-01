@@ -69,14 +69,19 @@ pub fn identifier(runa: &mut Runa, token: &String) -> bool {
         return true;
     }
 
-    if let Token::Value(ntk) = &next {
-        if ntk == "(" {
-            return function(runa, token);
+    let Token::Value(ntk) = &next else { unreachable!() };
+
+    match ntk.as_str() {
+        "(" => function(runa, token),
+        "." => {
+            lexer::back(runa, next);
+            return runa_expression(runa, token).0;
+        }
+        _ => {
+            lexer::back(runa, next);
+            return true;
         }
     }
-
-    lexer::back(runa, next);
-    return true;
 }
 
 fn local(runa: &mut Runa, token: &String) -> bool {

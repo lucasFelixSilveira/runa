@@ -21,6 +21,13 @@ pub enum RunaValue {
     Boolean(bool),
     Table(String, Vec<(String, Rc<RefCell<RunaValue>>)>),
 
+    /*
+     * this is a special type to Runa use in Tables.
+     * It just make some global value reference using
+     * a `String` as the identifier
+     */
+    Pointer(String),
+
     #[default]
     Nil,
 }
@@ -33,6 +40,7 @@ impl RunaValue {
             RunaValue::Float(_) => "float",
             RunaValue::Boolean(_) => "boolean",
             RunaValue::Table(_, _) => "table",
+            RunaValue::Pointer(_) => "pointer",
             RunaValue::Nil => "nil",
         }
     }
@@ -165,6 +173,7 @@ pub fn runa_value_to_string(value: &RunaValue) -> String {
         RunaValue::Float(f) => f.to_string(),
         RunaValue::Boolean(b) => b.to_string(),
         RunaValue::Nil => "nil".to_string(),
+        RunaValue::Pointer(addr) => format!("pointer to runa:{addr}"),
         RunaValue::Table(id, table) => {
             let mut s = format!("table({}...{}) {{ ", id[..3].to_string(), id[24..].to_string());
             for (name, value) in table
@@ -193,6 +202,21 @@ pub fn runa_assign_local(runa: &mut Runa, name: String, value: RunaValue) {
         }
     }
     runa_push_local(runa, Local::Variable(Variable { name, value }));
+}
+
+pub fn runa_peek_value_to_pointer(runa: &Runa, val: RunaValue) -> RunaValue {
+    let RunaValue::Pointer(addr) = &val else {
+        return val;
+    };
+
+    let variable = runa_peek_variable(runa, &format!("runa:{addr}"));
+    let Some(Variable { name, value }) = variable else {
+        runa_spawn_fatal_error(format!("Can't access the pointer {addr}"));
+        unreachable!()
+    };
+
+    _ = name;
+    return value
 }
 
 pub fn runa_peek_table_by_internal_id(runa: &Runa, internal_id: *const u8) -> &RunaValue {

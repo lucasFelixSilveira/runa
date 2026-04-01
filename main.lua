@@ -1,7 +1,4 @@
-function loop(time)
-    sleep(time)
-    print("Hello, world!")
-    loop(time)
-end
-
-loop(1)
+local x = { y = "example" }
+print(x.y)
+x.y = "Lucas"
+print(x.y)

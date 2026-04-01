@@ -6,6 +6,7 @@ mod table;
 
 pub fn simulate_expression(runa: &mut Runa, val: &RunaValue) -> (bool, RunaValue) {
     match val {
+        RunaValue::Pointer(_) => simulate_expression(runa, &runa_peek_value_to_pointer(runa, val.clone())),
         RunaValue::String(s) => string::runa_expression_string(runa, &format!("'{}'", s)),
         RunaValue::Integer(i) => numeric::runa_expression_numeric(runa, &i.to_string()),
         RunaValue::Float(f) => numeric::runa_expression_numeric(runa, &f.to_string()),
@@ -36,17 +37,37 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
         if let Local::Variable(var) = local {
             if let RunaValue::Table(_, _) = &var.value {
                 let mut current = var.value.clone();
+                let mut path = Vec::new();
 
                 loop {
                     let operator = lexer::next(runa);
 
                     match operator.as_str_ref() {
+                        Some("=") => {
+                            let RunaValue::Pointer(addr) = &current else {
+                                runa_spawn_fatal_error(format!("The field of this table isn't a value reference. This means: Internally Runa have did fail."));
+                                unreachable!();
+                            };
+
+                            let expr = lexer::next(runa);
+                            let (success, value) = runa_expression(runa, expr.as_str().unwrap_or_else(|| {
+                                runa_spawn_fatal_error(format!("Has been expected a valid runa expression after `=` in the table assignment. Found `EOF`"));
+                                unreachable!()
+                            }));
+
+                            if !success { return (false, RunaValue::Nil); }
+                            runa_assign_local(runa, format!("runa:{addr}"), value.clone());
+                            return (true, value)
+                        }
+
                         Some(".") => {
                             let field_token = lexer::next(runa);
                             let field = match field_token.as_str() {
                                 Some(f) => f,
                                 None => return (false, RunaValue::Nil),
                             };
+
+                            path.push(field.clone());
 
                             if let RunaValue::Table(_, table) = &current.clone() {
                                 let val: Vec<_> = table.iter()
@@ -75,6 +96,7 @@ pub fn runa_expression(runa: &mut Runa, token: &String) -> (bool, RunaValue) {
                                         )
                                     )
                                 }
+                                path.push(index.to_string());
                             }
 
                             let close = lexer::next(runa);

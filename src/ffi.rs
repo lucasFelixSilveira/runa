@@ -64,6 +64,8 @@ impl crate::core::RunaValue {
                 tag: RunaValueTag::Table,
                 data: RunaValueData { identifier: internal_identifier.as_ptr() }
             },
+
+            crate::core::RunaValue::Pointer(_) => todo!()
         }
     }
 }

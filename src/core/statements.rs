@@ -102,7 +102,6 @@ fn if_statement(runa: &mut Runa) -> bool {
 
 
     let mut i = 0;
-    let mut has_next_check = false;
     if !resolve {loop {
         let tk = lexer::next(runa);
         let Token::Value(value) = &tk else {
@@ -113,7 +112,6 @@ fn if_statement(runa: &mut Runa) -> bool {
         match value.as_str() {
             "end" if i == 0 => break,
             "else" | "elseif" if i == 0 => {
-                has_next_check = true;
                 lexer::back(runa, tk);
                 break;
             },
@@ -122,9 +120,6 @@ fn if_statement(runa: &mut Runa) -> bool {
             _ => {},
         }
     }}
-
-    if !has_next_check
-    { _ = runa.if_resolved.pop(); }
 
     return true;
 }

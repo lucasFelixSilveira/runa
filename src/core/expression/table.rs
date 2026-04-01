@@ -22,7 +22,14 @@ pub fn runa_expression_tables(runa: &mut Runa, _: &String) -> (bool, RunaValue) 
             let (success, value) = runa_expression(runa, value_token.as_str().unwrap());
             if !success { return ( false, RunaValue::Nil ); }
 
-            table.push((key, Rc::new(RefCell::new(value))));
+            let addr = internal::gen_id();
+            runa_push_local(runa, Local::Variable(Variable {
+                name: format!("runa:{}", addr.clone()),
+                value
+            }));
+
+            let ptr = RunaValue::Pointer(addr);
+            table.push((key, Rc::new(RefCell::new(ptr))));
 
             let sep = lexer::next(runa);
             match sep.as_str_ref() {
@@ -40,7 +47,14 @@ pub fn runa_expression_tables(runa: &mut Runa, _: &String) -> (bool, RunaValue) 
         let (success, value) = runa_expression(runa, key_token.as_str().unwrap());
         if !success { return ( false, RunaValue::Nil ); }
 
-        table.push((i.to_string(), Rc::new(RefCell::new(value))));
+        let addr = internal::gen_id();
+        runa_push_local(runa, Local::Variable(Variable {
+            name: format!("runa:{}", addr.clone()),
+            value
+        }));
+
+        let ptr = RunaValue::Pointer(addr);
+        table.push((i.to_string(), Rc::new(RefCell::new(ptr))));
         i += 1;
 
         let sep = lexer::next(runa);
