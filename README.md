@@ -168,7 +168,7 @@ int main() {
 ### Explanation
 - `runa_push_field` adds a key-value pair to the current table context.
 - `runa_push_table` groups previously pushed fields into a named table.
-- 
+
 This abstraction keeps your code clean while avoiding the complexity of handling internal memory structures manually.
 
 ## Spawning lua function
