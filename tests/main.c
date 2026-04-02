@@ -26,14 +26,18 @@ void print(Runa *runa) {
     runa_value_free(val);
 }
 
-int main() {
-    tests();
+// Callback after push scope in stack
+// - Used to define initial scope variables
+// - When function is returned all variables are freed
+void cap(Runa *runa) {}
 
+int main() {
     Runa *runa = runa_start();
+
     runa_push_function(runa, "print", (runa_callback)print, 1);
-    // runa_push_function(runa, "mlog2", (runa_callback)mlog2, 1);
-    // runa_push_function(runa, "sleep", (runa_callback)rsleep, 1);
+
     runa_loadfile(runa, "./main.lua");
+    runa_spawn_function(runa, "function_name", (runa_callback)cap);
     runa_free(runa);
     return 0;
 }

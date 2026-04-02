@@ -18,6 +18,12 @@ typedef enum {
 } RunaValueTag;
 #undef X
 
+#define make_string(str) (RunaValueFFI){ .tag = runa_string, .data.string = str }
+#define make_integer(int) (RunaValueFFI){ .tag = runa_integer, .data.integer = int }
+#define make_float(float) (RunaValueFFI){ .tag = runa_float, .data._float = float }
+#define make_boolean(bool) (RunaValueFFI){ .tag = runa_boolean, .data.boolean = bool }
+#define make_nil() (RunaValueFFI){ .tag = runa_nil, .data = { 0 } }
+
 typedef union {
     const char* string;
     size_t integer;
@@ -46,15 +52,38 @@ switch (funcid) {                                     \
     } break;                                          \
 }
 
-void tests();
-
-Runa *runa_start();
-void runa_loadfile(Runa *runa, const char *filename);
-void runa_free(Runa *runa);
-void runa_push_function(Runa *runa, const char *name, runa_callback callback, int argc);
+/* push instruictions */
+void runa_push_field(Runa *runa, char *key, RunaValueFFI value);
+void runa_push_table(Runa *runa, char *identifier, unsigned int amount);
+void runa_push_function(Runa *runa, char *name, runa_callback callback, int argc);
 void runa_push_result(Runa *runa, RunaValueFFI value);
+
+/* function utils */
+
+// This peeks at an argument value by their position in argument stack.
 RunaValueFFI runa_peek_arg(Runa *runa, int index);
+RunaValueFFI runa_spawn_function(Runa *runa, char *name, runa_callback cap);
+
+/* values */
+
+// This clean up a value, freeing any associated memory.
 void runa_value_free(RunaValueFFI value);
+
+// This converts a value to a string representation.
 char* runa_value_to_string(Runa *runa, RunaValueFFI value);
+
+// This frees a string returned by `runa_value_to_string`.
 void runa_str_free(char *str);
+
+/* runa internals */
+
+// This loads a file into the runa statement.
+void runa_loadfile(Runa *runa, char *filename);
+
+// This starts the runa statement.
+Runa *runa_start();
+
+// This frees the runa statement.
+void runa_free(Runa *runa);
+
 #endif

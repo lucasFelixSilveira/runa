@@ -60,34 +60,54 @@ RUNA follows Lua syntax (PUC-Lua style) with a reduced standard library.
 - Standard Lua libraries are not included
 - Custom minimal `std` is provided
 
-```lua
-local dev = { name = "Lucas", age = 16, bio = "I am just a developer" }
-print("Hello world! My name is " .. dev["name"] .. ", i am " .. dev["age"] .. ' and ' .. dev["bio"])
--- Hello world! My name is Lucas, i am 16 and I am just a developer
-```
-
-
 ## Getting Started
-Running a script
+
+### Running a Script
+
+To execute a Lua script using Runa, you only need to initialize the runtime, load the script file, and then clean up the resources.
+
+### Example
 
 ```c
 int main() {
+    // Initialize Runa runtime
     Runa *runa = runa_start();
+
+    // Execute Lua script
     runa_loadfile(runa, "main.lua");
+
+    // Free runtime resources
     runa_free(runa);
+
+    return 0;
 }
 ```
 
+### Explanation
+- `runa_start` initializes the Runa runtime
+- `runa_loadfile` loads and executes the specified Lua script
+- `runa_free` releases all allocated resources
+
+This is the minimal setup required to run Lua code with Runa.
+
 ## Exposing native functions
-Bind native functions directly into the runtime:
+You can expose native C functions to the Runa runtime, allowing them to be called directly from Lua code.
+
+This is useful for extending Lua with high-performance or system-level functionality.
+
+### Example
 
 ```c
 void print(Runa *runa) {
+    // Get first argument from Lua
     RunaValueFFI val = runa_peek_arg(runa, 0);
+
+    // Convert value to string
     char *str = runa_value_to_string(val);
 
     printf("print from C: %s\n", str);
 
+    // Free resources if needed
     runa_optional(RUNA_FREE_STRING_BY_VALUE, runa_str_free, str, val);
     runa_value_free(val);
 }
@@ -95,6 +115,7 @@ void print(Runa *runa) {
 int main() {
     Runa *runa = runa_start();
 
+    // Register native function into runtime
     runa_push_function(runa, "print", (runa_callback)print, 1);
 
     runa_loadfile(runa, "main.lua");
@@ -104,22 +125,91 @@ int main() {
 }
 ```
 
-## Using the standard library
+- `runa_push_function` registers a C function into the Lua environment
+- The third argument (`1`) defines how many arguments the function expects
+- `runa_peek_arg` retrieves arguments passed from Lua
+- `runa_value_to_string` converts a runtime value into a C string
+- `runa_optional` safely frees the string only when required
+- `runa_value_free` releases the internal value representation
+
+Once registered, the function can be called in Lua just like a regular function:
+
+```lua
+print("Hello from Lua!")
+```
+
+This approach lets you seamlessly bridge Lua and C while keeping memory management under control.
+
+## Working with tables in C
+To simplify table manipulation in Runa, the internal system uses fake pointers. Since managing these structures manually can be complex and error-prone, Runa provides two helper functions to streamline the process:
+
+- `runa_push_table`
+- `runa_push_field`
+
+These functions allow you to construct tables in a structured and safe way without dealing directly with low-level internals.
+
+### Example
 ```c
 int main() {
     Runa *runa = runa_start();
 
-    int flags = COMMON_STD | MORGANA_STD;
-    runa_use_std(runa, flags);
+    // Add a field to the current context
+    runa_push_field(runa, "name", make_string("Lucas"));
 
-    runa_loadfile(runa, "main.lua");
+    // Create a table named "dev" with 1 field
+    runa_push_table(runa, "dev", 1);
+
+    runa_loadfile(runa, "./main.lua");
     runa_free(runa);
+    return 0;
 }
 ```
 
-### Available flags
-- `COMMON_STD` → basic utilities (print, log10, etc.)
-- `MORGANA_STD` → extended utilities for Morgana ecosystem
+### Explanation
+- `runa_push_field` adds a key-value pair to the current table context.
+- `runa_push_table` groups previously pushed fields into a named table.
+- 
+This abstraction keeps your code clean while avoiding the complexity of handling internal memory structures manually.
+
+## Spawning lua function
+To execute (spawn) a Lua function from C using Runa, you first need to have a valid Lua function loaded into the runtime. After that, you can call it using `runa_spawn_function`.
+
+This function allows you to inject arguments and define the execution scope through a callback known as **CAP** (*Callback After Push*).
+
+### What is CAP?
+CAP is a callback executed right before the Lua function runs. It is used to define local variables and prepare the function's execution context.
+
+- It runs after the scope is created
+- It allows pushing arguments into the function
+- All variables defined here are automatically freed after execution
+
+### Example
+
+```c
+// CAP = Callback After Push
+// Used to define local variables (function arguments)
+void cap(Runa *runa) {
+    // Push arguments or define variables here
+}
+
+int main() {
+    Runa *runa = runa_start();
+
+    // Load Lua file containing the target function
+    runa_loadfile(runa, "./main.lua");
+
+    // Spawn (call) the Lua function with a CAP callback
+    runa_spawn_function(runa, "function_name", (runa_callback)cap);
+
+    runa_free(runa);
+    return 0;
+}
+```
+
+### Explanation
+- `runa_spawn_function` looks up and executes a Lua function by name
+- The `cap` callback is used to inject arguments into the function scope
+- The scope created for the function is temporary and automatically cleaned up after execution
 
 ##
 
