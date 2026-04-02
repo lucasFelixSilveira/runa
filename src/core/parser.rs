@@ -78,6 +78,54 @@ pub fn identifier(runa: &mut Runa, token: &String) -> bool {
             lexer::back(runa, next);
             return runa_expression(runa, token).0;
         }
+        "," => {
+            let mut ids = vec![ token.clone() ];
+            loop {
+                let token = lexer::next(runa);
+                let Token::Value(id) = &token else {
+                    runa_spawn_fatal_error(format!("expected identifier but found `EOF`"));
+                    unreachable!();
+                };
+
+                ids.push(id.clone());
+
+                let op = lexer::next(runa);
+                let Token::Value(op) = &op else {
+                    runa_spawn_fatal_error(format!("expected `,` after identifier or `=` to start an assignment expression but found `EOF`"));
+                    unreachable!();
+                };
+
+                match op.as_str() {
+                    "=" => break,
+                    "," => continue,
+                    _ => {
+                        runa_spawn_fatal_error(format!("expected `=` after identifier to start an assignment expression but found `{}`", op));
+                        unreachable!();
+                    }
+                }
+            }
+
+            let mut i = 0;
+            loop {
+                let token = lexer::next(runa);
+                let Token::Value(id) = &token else {
+                    runa_spawn_fatal_error(format!("expected identifier but found `EOF`"));
+                    unreachable!();
+                };
+
+                let (success, value) = runa_expression(runa, id);
+                if !success { return false; }
+
+                runa_assign_local(runa, ids.get(i).unwrap().clone(), value);
+
+                if i + 1 >= ids.len() { break; }
+                i += 1;
+
+                _ = lexer::next(runa);
+            }
+
+            true
+        }
         "=" => {
             lexer::back(runa, next);
             return runa_expression(runa, token).0;

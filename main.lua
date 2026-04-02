@@ -1,13 +1,5 @@
-function fibonacci(n)
-    local a = 0
-    local b = 1
+local x, y, z = "Hello, ", "world! ", "I love my femboy"
+print(x .. y .. z)
 
-    for i = 1, n do
-        print(a)
-        local temp = a + b
-        a = b
-        b = temp
-    end
-end
-
-fibonacci(80)
+x, y = "My name is ", "Lucas! and "
+print(x .. y .. z)
