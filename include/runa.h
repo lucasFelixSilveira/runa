@@ -24,6 +24,11 @@ typedef enum {
 #define make_boolean(bool) (RunaValueFFI){ .tag = runa_boolean, .data.boolean = bool }
 #define make_nil() (RunaValueFFI){ .tag = runa_nil, .data = { 0 } }
 
+#define as_string(val) ((RunaValueFFI)val).data.string
+#define as_integer(val) ((RunaValueFFI)val).data.integer
+#define as_float(val) ((RunaValueFFI)val).data._float
+#define as_boolean(val) ((RunaValueFFI)val).data.boolean
+
 typedef union {
     const char* string;
     size_t integer;

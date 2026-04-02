@@ -9,7 +9,7 @@ pub fn runa_expression_string(runa: &mut Runa, token: &String) -> (bool, RunaVal
     let mut buffer = token[1..token.len()-1].to_string();
     let mut operator = next.clone();
     loop {
-        if operator.as_str().unwrap() != ".." {
+        if  operator.is_eof() || operator.as_str().unwrap() != ".." {
             lexer::back(runa, operator);
             return ( true, RunaValue::String(buffer) );
         }

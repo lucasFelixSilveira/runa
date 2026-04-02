@@ -43,6 +43,7 @@ pub fn function(runa: &mut Runa, token: &String) -> bool {
     } else {
         runa.stack.push(Vec::new());
         let ids = argv.unwrap();
+
         for (i, arg) in args.iter().enumerate() {
             runa_push_local(runa, Local::Variable(Variable {
                 name: ids[i].clone(),
@@ -62,7 +63,6 @@ pub fn identifier(runa: &mut Runa, token: &String) -> bool {
     if !isidentifier(token) {
         return false;
     }
-
 
     let next = lexer::next(runa);
     if next.is_eof() {

@@ -218,10 +218,8 @@ fn runa_spawn_function(runa, identifier: *mut c_char, cap: *const c_void) -> ffi
         lexer::branch(runa, body.unwrap());
         parse(runa);
         runa.stack.pop();
-    }
 
-    ffi::RunaValueFFI {
-        tag: ffi::RunaValueTag::Nil,
-        data: ffi::RunaValueData { integer: 0 },
+        let ret = runa.return_value.as_ref().unwrap_or(&RunaValue::Nil);
+        return ret.to_ffi();
     }
 });
