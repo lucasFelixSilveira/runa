@@ -1,7 +1,6 @@
 #ifndef RUNA_LZMA_H
 #define RUNA_LZMA_H
 
-#include <lzma.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
