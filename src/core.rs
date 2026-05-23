@@ -227,9 +227,9 @@ pub fn runa_peek_value_to_pointer(runa: &Runa, val: RunaValue) -> RunaValue {
     return value
 }
 
-pub fn runa_peek_table_by_internal_id(runa: &Runa, internal_id: *const u8) -> &RunaValue {
+pub fn runa_peek_table_by_internal_id(runa: &Runa, internal_id: *const c_char) -> &RunaValue {
     if internal_id.is_null() { return &RunaValue::Nil; }
-    let c_str = unsafe { CStr::from_ptr(internal_id as *const i8) };
+    let c_str = unsafe { CStr::from_ptr(internal_id) };
     let id_str = match c_str.to_str() {
         Ok(s) => s,
         Err(_) => return &RunaValue::Nil,

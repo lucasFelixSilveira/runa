@@ -38,7 +38,7 @@ pub extern "C" fn runa_free(ptr: *mut Runa) {
 }
 
 runa_api_function!(
-fn runa_loadfile(runa, filename: *const i8) {
+fn runa_loadfile(runa, filename: *const c_char) {
     runa.filename = Some(
         unsafe {
             std::ffi::CStr::from_ptr(filename)
@@ -52,7 +52,7 @@ fn runa_loadfile(runa, filename: *const i8) {
 });
 
 runa_api_function!(
-fn runa_push_function(runa, name: *const i8, callback: *const c_void, argc: i32) {
+fn runa_push_function(runa, name: *const c_char, callback: *const c_void, argc: i32) {
     let function_name = unsafe {
         std::ffi::CStr::from_ptr(name)
     }.to_string_lossy().into_owned();
