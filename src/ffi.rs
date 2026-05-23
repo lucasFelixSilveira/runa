@@ -62,7 +62,7 @@ impl crate::core::RunaValue {
 
             crate::core::RunaValue::Table(internal_identifier, _) => RunaValueFFI {
                 tag: RunaValueTag::Table,
-                data: RunaValueData { identifier: internal_identifier.as_ptr() }
+                data: RunaValueData { identifier: internal_identifier.as_ptr() as *const c_char }
             },
 
             crate::core::RunaValue::Pointer(_) => todo!()
