@@ -1,0 +1,105 @@
+name: Build ALL Library Formats
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-all:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # === Windows ===
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            dynamic_ext: dll
+            static_ext: lib
+            cross: false
+
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            dynamic_ext: dll
+            static_ext: lib
+            cross: false
+
+          # === Linux ===
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            dynamic_ext: so
+            static_ext: a
+            cross: false
+
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            dynamic_ext: so
+            static_ext: a
+            cross: true
+
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+            dynamic_ext: so
+            static_ext: a
+            cross: true
+
+          # === macOS ===
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            dynamic_ext: dylib
+            static_ext: a
+            cross: false
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            dynamic_ext: dylib
+            static_ext: a
+            cross: false
+
+          # === FreeBSD ===
+          - os: ubuntu-latest
+            target: x86_64-unknown-freebsd
+            dynamic_ext: so
+            static_ext: a
+            cross: true
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --locked
+
+      - name: Build Dynamic Library
+        run: |
+          if [[ "${{ matrix.cross }}" == "true" ]]; then
+            cross rustc --target ${{ matrix.target }} --release -- --crate-type cdylib
+          else
+            cargo rustc --target ${{ matrix.target }} --release -- --crate-type cdylib
+          fi
+        shell: bash
+
+      - name: Build Static Library
+        run: |
+          if [[ "${{ matrix.cross }}" == "true" ]]; then
+            cross rustc --target ${{ matrix.target }} --release -- --crate-type staticlib
+          else
+            cargo rustc --target ${{ matrix.target }} --release -- --crate-type staticlib
+          fi
+        shell: bash
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: libs-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/*.${{ matrix.dynamic_ext }}
+            target/${{ matrix.target }}/release/*.${{ matrix.static_ext }}
+          retention-days: 14
