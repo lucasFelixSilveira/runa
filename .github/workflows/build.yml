@@ -63,6 +63,35 @@ jobs:
             static_ext: a
             cross: true
 
+          # === Android ===
+          - os: ubuntu-latest
+            target: aarch64-linux-android
+            dynamic_ext: so
+            static_ext: a
+            cross: true
+            ndk_api: 21
+
+          - os: ubuntu-latest
+            target: armv7-linux-androideabi
+            dynamic_ext: so
+            static_ext: a
+            cross: true
+            ndk_api: 21
+
+          - os: ubuntu-latest
+            target: i686-linux-android
+            dynamic_ext: so
+            static_ext: a
+            cross: true
+            ndk_api: 21
+
+          - os: ubuntu-latest
+            target: x86_64-linux-android
+            dynamic_ext: so
+            static_ext: a
+            cross: true
+            ndk_api: 21
+
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -77,10 +106,63 @@ jobs:
         if: matrix.cross
         run: cargo install cross --locked
 
+      - name: Setup Android NDK (for Android targets)
+        if: contains(matrix.target, 'android')
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+          local-cache: true
+          add-to-path: false
+
+      - name: Set Android environment variables
+        if: contains(matrix.target, 'android')
+        shell: bash
+        run: |
+          echo "NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+          echo "NDK_LIBS_DIR=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/17/lib/linux/${{ matrix.target }}" >> $GITHUB_ENV
+
+          # Setup compiler and linker for cross-compilation
+          case "${{ matrix.target }}" in
+            aarch64-linux-android)
+              echo "TARGET_CC=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${{ matrix.ndk_api }}-clang" >> $GITHUB_ENV
+              echo "TARGET_AR=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
+              ;;
+            armv7-linux-androideabi)
+              echo "TARGET_CC=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${{ matrix.ndk_api }}-clang" >> $GITHUB_ENV
+              echo "TARGET_AR=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
+              ;;
+            i686-linux-android)
+              echo "TARGET_CC=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android${{ matrix.ndk_api }}-clang" >> $GITHUB_ENV
+              echo "TARGET_AR=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
+              ;;
+            x86_64-linux-android)
+              echo "TARGET_CC=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android${{ matrix.ndk_api }}-clang" >> $GITHUB_ENV
+              echo "TARGET_AR=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Create Cargo config for Android
+        if: contains(matrix.target, 'android')
+        shell: bash
+        run: |
+          mkdir -p .cargo
+          cat > .cargo/config.toml << EOF
+          [target.${{ matrix.target }}]
+          linker = "${{ env.TARGET_CC }}"
+          ar = "${{ env.TARGET_AR }}"
+          rustflags = ["-C", "link-arg=-static-libstdc++"]
+          EOF
+
       - name: Build Dynamic Library
         run: |
+          cd interpreter
           if [[ "${{ matrix.cross }}" == "true" ]]; then
-            cross rustc --target ${{ matrix.target }} --release -- --crate-type cdylib
+            if [[ "${{ contains(matrix.target, 'android') }}" == "true" ]]; then
+              # Use cargo directly with custom config for Android
+              cargo rustc --target ${{ matrix.target }} --release -- --crate-type cdylib
+            else
+              cross rustc --target ${{ matrix.target }} --release -- --crate-type cdylib
+            fi
           else
             cargo rustc --target ${{ matrix.target }} --release -- --crate-type cdylib
           fi
@@ -88,8 +170,14 @@ jobs:
 
       - name: Build Static Library
         run: |
+          cd interpreter
           if [[ "${{ matrix.cross }}" == "true" ]]; then
-            cross rustc --target ${{ matrix.target }} --release -- --crate-type staticlib
+            if [[ "${{ contains(matrix.target, 'android') }}" == "true" ]]; then
+              # Use cargo directly with custom config for Android
+              cargo rustc --target ${{ matrix.target }} --release -- --crate-type staticlib
+            else
+              cross rustc --target ${{ matrix.target }} --release -- --crate-type staticlib
+            fi
           else
             cargo rustc --target ${{ matrix.target }} --release -- --crate-type staticlib
           fi
@@ -100,6 +188,6 @@ jobs:
         with:
           name: libs-${{ matrix.target }}
           path: |
-            target/${{ matrix.target }}/release/*.${{ matrix.dynamic_ext }}
-            target/${{ matrix.target }}/release/*.${{ matrix.static_ext }}
+            interpreter/target/${{ matrix.target }}/release/*.${{ matrix.dynamic_ext }}
+            interpreter/target/${{ matrix.target }}/release/*.${{ matrix.static_ext }}
           retention-days: 14
