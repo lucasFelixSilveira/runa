@@ -155,7 +155,6 @@ jobs:
 
       - name: Build Dynamic Library
         run: |
-          cd interpreter
           if [[ "${{ matrix.cross }}" == "true" ]]; then
             if [[ "${{ contains(matrix.target, 'android') }}" == "true" ]]; then
               # Use cargo directly with custom config for Android
@@ -170,7 +169,6 @@ jobs:
 
       - name: Build Static Library
         run: |
-          cd interpreter
           if [[ "${{ matrix.cross }}" == "true" ]]; then
             if [[ "${{ contains(matrix.target, 'android') }}" == "true" ]]; then
               # Use cargo directly with custom config for Android
@@ -188,6 +186,6 @@ jobs:
         with:
           name: libs-${{ matrix.target }}
           path: |
-            interpreter/target/${{ matrix.target }}/release/*.${{ matrix.dynamic_ext }}
-            interpreter/target/${{ matrix.target }}/release/*.${{ matrix.static_ext }}
+            target/${{ matrix.target }}/release/*.${{ matrix.dynamic_ext }}
+            target/${{ matrix.target }}/release/*.${{ matrix.static_ext }}
           retention-days: 14
